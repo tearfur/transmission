@@ -325,7 +325,7 @@ public:
         auto const now = tr_time();
         auto const oldest = now - RequestTtlSecs;
 
-        for (auto const& [block, peer] : active_requests.sentBefore(oldest))
+        for (auto const& [block, peer] : active_requests.sent_before(oldest))
         {
             maybe_send_cancel_request(peer, block, nullptr);
             active_requests.remove(block, peer);
@@ -554,7 +554,7 @@ public:
 
     tr_torrent* const tor;
 
-    ActiveRequests active_requests;
+    tr_active_requests active_requests;
 
     // depends-on: active_requests
     std::vector<std::unique_ptr<tr_peer>> webseeds;

@@ -29,7 +29,7 @@ protected:
 
 TEST_F(PeerMgrActiveRequestsTest, requestsAreNotAddedTwice)
 {
-    auto requests = ActiveRequests{};
+    auto requests = tr_active_requests{};
 
     auto const block = tr_block_index_t{ 100 };
     auto const peer = static_cast<tr_peer*>(nullptr);
@@ -42,7 +42,7 @@ TEST_F(PeerMgrActiveRequestsTest, requestsAreNotAddedTwice)
 
 TEST_F(PeerMgrActiveRequestsTest, requestsMadeAreCounted)
 {
-    auto requests = ActiveRequests{};
+    auto requests = tr_active_requests{};
 
     auto const block = tr_block_index_t{ 100 };
     auto const peer = static_cast<tr_peer*>(nullptr);
@@ -61,7 +61,7 @@ TEST_F(PeerMgrActiveRequestsTest, requestsMadeAreCounted)
 
 TEST_F(PeerMgrActiveRequestsTest, requestsAreRemoved)
 {
-    auto requests = ActiveRequests{};
+    auto requests = tr_active_requests{};
 
     auto const block = tr_block_index_t{ 100 };
     auto const peer = static_cast<tr_peer*>(nullptr);
@@ -85,7 +85,7 @@ TEST_F(PeerMgrActiveRequestsTest, requestsAreRemoved)
 
 TEST_F(PeerMgrActiveRequestsTest, peersAreRemoved)
 {
-    auto requests = ActiveRequests{};
+    auto requests = tr_active_requests{};
 
     auto const block = tr_block_index_t{ 100 };
     auto const peer = static_cast<tr_peer*>(nullptr);
@@ -111,7 +111,7 @@ TEST_F(PeerMgrActiveRequestsTest, peersAreRemoved)
 TEST_F(PeerMgrActiveRequestsTest, multiplePeersAreRemoved)
 {
     // setup
-    auto requests = ActiveRequests{};
+    auto requests = tr_active_requests{};
     auto const block_a = tr_block_index_t{ 128 };
     auto const when_a = 100;
     EXPECT_TRUE(requests.add(block_a, peer_a_, when_a));
@@ -137,7 +137,7 @@ TEST_F(PeerMgrActiveRequestsTest, multiplePeersAreRemoved)
 TEST_F(PeerMgrActiveRequestsTest, multipleBlocksAreRemoved)
 {
     // setup
-    auto requests = ActiveRequests{};
+    auto requests = tr_active_requests{};
     auto const block_a1 = tr_block_index_t{ 128 };
     auto const when_a1 = 300;
     EXPECT_TRUE(requests.add(block_a1, peer_a_, when_a1));
@@ -164,7 +164,7 @@ TEST_F(PeerMgrActiveRequestsTest, multipleBlocksAreRemoved)
 TEST_F(PeerMgrActiveRequestsTest, sentBefore)
 {
     // setup
-    auto requests = ActiveRequests{};
+    auto requests = tr_active_requests{};
     auto const block_a1 = tr_block_index_t{ 128 };
     auto const when_a1 = 300;
     EXPECT_TRUE(requests.add(block_a1, peer_a_, when_a1));
@@ -176,15 +176,15 @@ TEST_F(PeerMgrActiveRequestsTest, sentBefore)
     EXPECT_EQ(1U, requests.count(block_a1));
 
     // test that the timestamps are counted correctly
-    EXPECT_EQ(0U, std::size(requests.sentBefore(when_a1 - 1)));
-    EXPECT_EQ(0U, std::size(requests.sentBefore(when_a1)));
-    EXPECT_EQ(1U, std::size(requests.sentBefore(when_a1 + 1)));
-    EXPECT_EQ(1U, std::size(requests.sentBefore(when_a2 - 1)));
-    EXPECT_EQ(1U, std::size(requests.sentBefore(when_a2)));
-    EXPECT_EQ(2U, std::size(requests.sentBefore(when_a2 + 1)));
+    EXPECT_EQ(0U, std::size(requests.sent_before(when_a1 - 1)));
+    EXPECT_EQ(0U, std::size(requests.sent_before(when_a1)));
+    EXPECT_EQ(1U, std::size(requests.sent_before(when_a1 + 1)));
+    EXPECT_EQ(1U, std::size(requests.sent_before(when_a2 - 1)));
+    EXPECT_EQ(1U, std::size(requests.sent_before(when_a2)));
+    EXPECT_EQ(2U, std::size(requests.sent_before(when_a2 + 1)));
 
     // test that the returned block + peer pairs are correct
-    auto items = requests.sentBefore(when_a1 + 1);
+    auto items = requests.sent_before(when_a1 + 1);
     ASSERT_EQ(1U, std::size(items));
     EXPECT_EQ(block_a1, items[0].first);
     EXPECT_EQ(peer_a_, items[0].second);

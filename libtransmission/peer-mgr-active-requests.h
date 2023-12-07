@@ -23,11 +23,11 @@ class tr_peer;
  * Bookkeeping for the active requests we have --
  *  e.g. the requests we've sent and are awaiting a response.
  */
-class ActiveRequests
+class tr_active_requests
 {
 public:
-    ActiveRequests();
-    ~ActiveRequests();
+    tr_active_requests();
+    ~tr_active_requests();
 
     // record that we've requested `block` from `peer`
     bool add(tr_block_index_t block, tr_peer* peer, time_t when);
@@ -54,7 +54,7 @@ public:
     [[nodiscard]] size_t size() const;
 
     // returns the active requests sent before `when`
-    [[nodiscard]] std::vector<std::pair<tr_block_index_t, tr_peer*>> sentBefore(time_t when) const;
+    [[nodiscard]] std::vector<std::pair<tr_block_index_t, tr_peer*>> sent_before(time_t when) const;
 
 private:
     class Impl;

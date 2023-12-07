@@ -23,7 +23,7 @@
 
 class tr_peer;
 
-class ActiveRequests::Impl
+class tr_active_requests::Impl
 {
 public:
     size_t size() const
@@ -34,25 +34,25 @@ public:
     size_t count(tr_peer const* peer) const
     {
         auto const it = count_.find(peer);
-        return it != std::end(count_) ? it->second : size_t{};
+        return it != std::end(count_) ? it->second : 0U;
     }
 
-    void incCount(tr_peer const* peer)
+    void inc_count(tr_peer const* peer)
     {
         ++count_[peer];
         ++size_;
     }
 
-    void decCount(tr_peer const* peer)
+    void dec_count(tr_peer const* peer)
     {
         auto it = count_.find(peer);
         TR_ASSERT(it != std::end(count_));
-        TR_ASSERT(it->second > 0);
-        TR_ASSERT(size_ > 0);
+        TR_ASSERT(it->second > 0U);
+        TR_ASSERT(size_ > 0U);
 
         if (it != std::end(count_))
         {
-            if (--it->second == 0)
+            if (--it->second == 0U)
             {
                 count_.erase(it);
             }
@@ -65,37 +65,37 @@ public:
     std::unordered_map<tr_block_index_t, small::map<tr_peer const*, time_t, Wishlist::EndgameMaxPeers>> blocks_;
 
 private:
-    size_t size_ = 0;
+    size_t size_ = 0U;
 };
 
-ActiveRequests::ActiveRequests()
+tr_active_requests::tr_active_requests()
     : impl_{ std::make_unique<Impl>() }
 {
 }
 
-ActiveRequests::~ActiveRequests() = default;
+tr_active_requests::~tr_active_requests() = default;
 
-bool ActiveRequests::add(tr_block_index_t block, tr_peer* peer, time_t when)
+bool tr_active_requests::add(tr_block_index_t block, tr_peer* peer, time_t when)
 {
     bool const added = impl_->blocks_[block].emplace(peer, when).second;
 
     if (added)
     {
-        impl_->incCount(peer);
+        impl_->inc_count(peer);
     }
 
     return added;
 }
 
 // remove a request to `peer` for `block`
-bool ActiveRequests::remove(tr_block_index_t block, tr_peer const* peer)
+bool tr_active_requests::remove(tr_block_index_t block, tr_peer const* peer)
 {
     auto const it = impl_->blocks_.find(block);
-    auto const removed = it != std::end(impl_->blocks_) && it->second.erase(peer) != 0;
+    auto const removed = it != std::end(impl_->blocks_) && it->second.erase(peer) != 0U;
 
     if (removed)
     {
-        impl_->decCount(peer);
+        impl_->dec_count(peer);
 
         if (std::empty(it->second))
         {
@@ -107,7 +107,7 @@ bool ActiveRequests::remove(tr_block_index_t block, tr_peer const* peer)
 }
 
 // remove requests to `peer` and return the associated blocks
-std::vector<tr_block_index_t> ActiveRequests::remove(tr_peer const* peer)
+std::vector<tr_block_index_t> tr_active_requests::remove(tr_peer const* peer)
 {
     auto removed = std::vector<tr_block_index_t>{};
     removed.reserve(impl_->blocks_.size());
@@ -129,39 +129,34 @@ std::vector<tr_block_index_t> ActiveRequests::remove(tr_peer const* peer)
 }
 
 // remove requests for `block` and return the associated peers
-std::vector<tr_peer*> ActiveRequests::remove(tr_block_index_t block)
+std::vector<tr_peer*> tr_active_requests::remove(tr_block_index_t block)
 {
     auto removed = std::vector<tr_peer*>{};
 
-    if (auto it = impl_->blocks_.find(block); it != std::end(impl_->blocks_))
+    if (auto nh = impl_->blocks_.extract(block); !std::empty(nh))
     {
-        auto const n = std::size(it->second);
-        removed.resize(n);
-        std::transform(
-            std::begin(it->second),
-            std::end(it->second),
-            std::begin(removed),
-            [](auto const& iter) { return const_cast<tr_peer*>(iter.first); });
-        impl_->blocks_.erase(block);
-    }
-
-    for (auto const* const peer : removed)
-    {
-        impl_->decCount(peer);
+        auto& peers_at = nh.mapped();
+        removed.reserve(std::size(peers_at));
+        for (auto [peer, sent_at] : peers_at)
+        {
+            removed.push_back(const_cast<tr_peer*>(peer));
+            impl_->dec_count(peer);
+        }
     }
 
     return removed;
 }
 
 // return true if there's an active request to `peer` for `block`
-bool ActiveRequests::has(tr_block_index_t block, tr_peer const* peer) const
+bool tr_active_requests::has(tr_block_index_t block, tr_peer const* peer) const
 {
-    auto const iter = impl_->blocks_.find(block);
-    return iter != std::end(impl_->blocks_) && (iter->second.count(peer) != 0U);
+    auto const& blocks = impl_->blocks_;
+    auto const iter = blocks.find(block);
+    return iter != std::end(blocks) && (iter->second.count(peer) != 0U);
 }
 
 // count how many peers we're asking for `block`
-size_t ActiveRequests::count(tr_block_index_t block) const
+size_t tr_active_requests::count(tr_block_index_t block) const
 {
     auto const& blocks = impl_->blocks_;
     auto const iter = blocks.find(block);
@@ -169,19 +164,19 @@ size_t ActiveRequests::count(tr_block_index_t block) const
 }
 
 // count how many active block requests we have to `peer`
-size_t ActiveRequests::count(tr_peer const* peer) const
+size_t tr_active_requests::count(tr_peer const* peer) const
 {
     return impl_->count(peer);
 }
 
 // return the total number of active requests
-size_t ActiveRequests::size() const
+size_t tr_active_requests::size() const
 {
     return impl_->size();
 }
 
 // returns the active requests sent before `when`
-std::vector<std::pair<tr_block_index_t, tr_peer*>> ActiveRequests::sentBefore(time_t when) const
+std::vector<std::pair<tr_block_index_t, tr_peer*>> tr_active_requests::sent_before(time_t when) const
 {
     auto sent_before = std::vector<std::pair<tr_block_index_t, tr_peer*>>{};
     sent_before.reserve(std::size(impl_->blocks_));
