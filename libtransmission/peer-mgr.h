@@ -540,8 +540,6 @@ void tr_peerMgrFree(tr_peerMgr* manager);
 
 [[nodiscard]] bool tr_peerMgrDidPeerRequest(tr_torrent const* torrent, tr_peer const* peer, tr_block_index_t block);
 
-void tr_peerMgrClientSentRequests(tr_torrent* torrent, tr_peer* peer, tr_block_span_t span);
-
 [[nodiscard]] size_t tr_peerMgrCountActiveRequestsToPeer(tr_torrent const* torrent, tr_peer const* peer);
 
 void tr_peerMgrAddIncoming(tr_peerMgr* manager, tr_peer_socket&& socket);

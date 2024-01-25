@@ -265,7 +265,10 @@ public:
             tasks.insert(task);
             task_request_next_chunk(task);
 
-            tr_peerMgrClientSentRequests(tor, this, *span);
+            for (auto [block, span_end] = *span; block < span_end; ++block)
+            {
+                publish(tr_peer_event::SentReq(tor->block_info(), block));
+            }
         }
     }
 

@@ -493,34 +493,39 @@ public:
         return tr_torrentReqIsValid(torrent, req.index, req.offset, req.length);
     }
 
+    void requestBlock(tr_block_index_t block) override
+    {
+        // Note that requests can't cross over a piece boundary.
+        // So if a piece isn't evenly divisible by the block size,
+        // we need to split our block request info per-piece chunks.
+        auto const byte_begin = torrent->block_loc(block).byte;
+        auto const block_size = torrent->block_size(block);
+        auto const byte_end = byte_begin + block_size;
+        for (auto offset = byte_begin; offset < byte_end;)
+        {
+            auto const loc = torrent->byte_loc(offset);
+            auto const left_in_block = block_size - loc.block_offset;
+            auto const left_in_piece = torrent->piece_size(loc.piece) - loc.piece_offset;
+            auto const req_len = std::min(left_in_block, left_in_piece);
+            protocolSendRequest(this, { loc.piece, loc.piece_offset, req_len });
+            offset += req_len;
+        }
+
+        publish(tr_peer_event::SentReq(torrent->block_info(), block));
+    }
+
     void requestBlocks(tr_block_span_t const* block_spans, size_t n_spans) override
     {
         TR_ASSERT(torrent->client_can_download());
         TR_ASSERT(client_is_interested());
         TR_ASSERT(!client_is_choked());
 
-        for (auto const *span = block_spans, *span_end = span + n_spans; span != span_end; ++span)
+        for (auto const *span = block_spans, *end = span + n_spans; span != end; ++span)
         {
-            for (auto [block, block_end] = *span; block < block_end; ++block)
+            for (auto [block, span_end] = *span; block < span_end; ++block)
             {
-                // Note that requests can't cross over a piece boundary.
-                // So if a piece isn't evenly divisible by the block size,
-                // we need to split our block request info per-piece chunks.
-                auto const byte_begin = torrent->block_loc(block).byte;
-                auto const block_size = torrent->block_size(block);
-                auto const byte_end = byte_begin + block_size;
-                for (auto offset = byte_begin; offset < byte_end;)
-                {
-                    auto const loc = torrent->byte_loc(offset);
-                    auto const left_in_block = block_size - loc.block_offset;
-                    auto const left_in_piece = torrent->piece_size(loc.piece) - loc.piece_offset;
-                    auto const req_len = std::min(left_in_block, left_in_piece);
-                    protocolSendRequest(this, { loc.piece, loc.piece_offset, req_len });
-                    offset += req_len;
-                }
+                requestBlock(block);
             }
-
-            tr_peerMgrClientSentRequests(torrent, this, *span);
         }
     }
 

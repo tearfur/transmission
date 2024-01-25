@@ -754,6 +754,10 @@ private:
     {
         switch (event.type)
         {
+        case tr_peer_event::Type::ClientSentReq:
+            s->active_requests.add(s->tor->piece_loc(event.pieceIndex, event.offset).block, peer, tr_time());
+            break;
+
         case tr_peer_event::Type::ClientGotRej:
             s->active_requests.remove(s->tor->piece_loc(event.pieceIndex, event.offset).block, peer);
             break;
@@ -1073,17 +1077,6 @@ void tr_peerMgrFree(tr_peerMgr* manager)
  */
 
 // --- struct block_request
-
-// TODO: if we keep this, add equivalent API to ActiveRequest
-void tr_peerMgrClientSentRequests(tr_torrent* torrent, tr_peer* peer, tr_block_span_t span)
-{
-    auto const now = tr_time();
-
-    for (tr_block_index_t block = span.begin; block < span.end; ++block)
-    {
-        torrent->swarm->active_requests.add(block, peer, now);
-    }
-}
 
 std::vector<tr_block_span_t> tr_peerMgrGetNextRequests(tr_torrent* torrent, tr_peer const* peer, size_t numwant)
 {

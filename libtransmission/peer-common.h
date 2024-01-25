@@ -50,15 +50,16 @@ public:
         ClientGotHaveAll,
         ClientGotHaveNone,
         ClientSentPieceData,
+        ClientSentReq,
         Error // generic
     };
 
     Type type = Type::Error;
 
     tr_bitfield* bitfield = nullptr; // for GotBitfield
-    uint32_t pieceIndex = 0; // for GotBlock, GotHave, Cancel, Allowed, Suggest
-    uint32_t offset = 0; // for GotBlock
-    uint32_t length = 0; // for GotBlock, GotPieceData
+    uint32_t pieceIndex = 0; // for GotBlock, GotHave, Cancel, Allowed, Suggest, SentReq
+    uint32_t offset = 0; // for GotBlock, SentReq
+    uint32_t length = 0; // for GotBlock, GotPieceData, SentPieceData, SentReq
     int err = 0; // errno for GotError
     tr_port port = {}; // for GotPort
 
@@ -166,6 +167,17 @@ public:
         auto event = tr_peer_event{};
         event.type = Type::ClientSentPieceData;
         event.length = length;
+        return event;
+    }
+
+    [[nodiscard]] constexpr static auto SentReq(tr_block_info const& block_info, tr_block_index_t block) noexcept
+    {
+        auto const loc = block_info.block_loc(block);
+        auto event = tr_peer_event{};
+        event.type = Type::ClientSentReq;
+        event.pieceIndex = loc.piece;
+        event.offset = loc.piece_offset;
+        event.length = block_info.block_size(block);
         return event;
     }
 };
