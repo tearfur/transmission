@@ -277,8 +277,8 @@ struct tr_incoming
                 __FILE__, \
                 __LINE__, \
                 (level), \
-                fmt::format("{:s} [{:s}]: {:s}", (msgs)->io->display_name(), (msgs)->user_agent().sv(), text), \
-                (msgs)->torrent->name()); \
+                fmt::format("{:s} [{:s}]: {:s}", (msgs)->display_name(), (msgs)->user_agent().sv(), text), \
+                (msgs)->tor_->name()); \
         } \
     } while (0)
 
@@ -313,31 +313,31 @@ public:
         tr_peer_callback_bt callback,
         void* callback_data)
         : tr_peerMsgs{ torrent_in, peer_info_in, client, io_in->is_encrypted(), io_in->is_incoming(), io_in->is_utp() }
-        , torrent{ torrent_in }
-        , io{ std::move(io_in) }
+        , tor_{ torrent_in }
+        , io_{ std::move(io_in) }
         , have_{ torrent_in->piece_count() }
         , callback_{ callback }
         , callback_data_{ callback_data }
     {
-        if (torrent->allows_pex())
+        if (tor_->allows_pex())
         {
             pex_timer_ = session->timerMaker().create([this]() { send_pex(); });
             pex_timer_->start_repeating(SendPexInterval);
         }
 
-        if (io->supports_ltep())
+        if (io_->supports_ltep())
         {
             send_ltep_handshake();
         }
 
         tell_peer_what_we_have();
 
-        if (session->allowsDHT() && io->supports_dht())
+        if (session->allowsDHT() && io_->supports_dht())
         {
             protocol_send_port(session->udpPort());
         }
 
-        io->set_callbacks(can_read, did_write, got_error, this);
+        io_->set_callbacks(can_read, did_write, got_error, this);
         update_desired_request_count();
 
         update_active();
@@ -353,9 +353,9 @@ public:
         set_active(TR_UP, false);
         set_active(TR_DOWN, false);
 
-        if (io)
+        if (io_)
         {
-            io->clear();
+            io_->clear();
         }
     }
 
@@ -363,7 +363,7 @@ public:
 
     [[nodiscard]] Speed get_piece_speed(uint64_t now, tr_direction dir) const override
     {
-        return io->get_piece_speed(now, dir);
+        return io_->get_piece_speed(now, dir);
     }
 
     [[nodiscard]] size_t active_req_count(tr_direction dir) const noexcept override
@@ -371,7 +371,7 @@ public:
         switch (dir)
         {
         case TR_CLIENT_TO_PEER: // requests we sent
-            return tr_peerMgrCountActiveRequestsToPeer(torrent, this);
+            return tr_peerMgrCountActiveRequestsToPeer(tor_, this);
 
         case TR_PEER_TO_CLIENT: // requests they sent
             return std::size(peer_requested_);
@@ -384,7 +384,7 @@ public:
 
     [[nodiscard]] tr_socket_address socket_address() const override
     {
-        return io->socket_address();
+        return io_->socket_address();
     }
 
     [[nodiscard]] std::string display_name() const override
@@ -413,14 +413,14 @@ public:
 
     void cancel_block_request(tr_block_index_t block) override
     {
-        protocol_send_cancel(peer_request::from_block(*torrent, block));
+        protocol_send_cancel(peer_request::from_block(*tor_, block));
     }
 
     void reject_all_requests()
     {
         auto& queue = peer_requested_;
 
-        if (auto const must_send_rej = io->supports_fext(); must_send_rej)
+        if (auto const must_send_rej = io_->supports_fext(); must_send_rej)
         {
             for (auto const& req : queue)
             {
@@ -436,7 +436,7 @@ public:
         time_t const now = tr_time();
         time_t const fibrillation_time = now - MinChokePeriodSec;
 
-        if (chokeChangedAt > fibrillation_time)
+        if (choke_changed_at_ > fibrillation_time)
         {
             logtrace(this, fmt::format("Not changing choke to {} to avoid fibrillation", peer_is_choked));
         }
@@ -450,7 +450,7 @@ public:
             }
 
             protocol_send_choke(peer_is_choked);
-            chokeChangedAt = now;
+            choke_changed_at_ = now;
             update_active(TR_CLIENT_TO_PEER);
         }
     }
@@ -484,12 +484,12 @@ public:
 
     [[nodiscard]] bool is_valid_request(peer_request const& req) const
     {
-        return tr_torrentReqIsValid(torrent, req.index, req.offset, req.length);
+        return tr_torrentReqIsValid(tor_, req.index, req.offset, req.length);
     }
 
     void request_blocks(tr_block_span_t const* block_spans, size_t n_spans) override
     {
-        TR_ASSERT(torrent->client_can_download());
+        TR_ASSERT(tor_->client_can_download());
         TR_ASSERT(client_is_interested());
         TR_ASSERT(!client_is_choked());
 
@@ -500,21 +500,21 @@ public:
                 // Note that requests can't cross over a piece boundary.
                 // So if a piece isn't evenly divisible by the block size,
                 // we need to split our block request info per-piece chunks.
-                auto const byte_begin = torrent->block_loc(block).byte;
-                auto const block_size = torrent->block_size(block);
+                auto const byte_begin = tor_->block_loc(block).byte;
+                auto const block_size = tor_->block_size(block);
                 auto const byte_end = byte_begin + block_size;
                 for (auto offset = byte_begin; offset < byte_end;)
                 {
-                    auto const loc = torrent->byte_loc(offset);
+                    auto const loc = tor_->byte_loc(offset);
                     auto const left_in_block = block_size - loc.block_offset;
-                    auto const left_in_piece = torrent->piece_size(loc.piece) - loc.piece_offset;
+                    auto const left_in_piece = tor_->piece_size(loc.piece) - loc.piece_offset;
                     auto const req_len = std::min(left_in_block, left_in_piece);
                     protocol_send_request({ loc.piece, loc.piece_offset, req_len });
                     offset += req_len;
                 }
             }
 
-            tr_peerMgrClientSentRequests(torrent, this, *span);
+            tr_peerMgrClientSentRequests(tor_, this, *span);
         }
     }
 
@@ -552,13 +552,13 @@ public:
 
         // TR_PEER_TO_CLIENT
 
-        if (!torrent->has_metainfo())
+        if (!tor_->has_metainfo())
         {
             return true;
         }
 
         auto const active = client_is_interested() && !client_is_choked();
-        TR_ASSERT(!active || !torrent->is_done());
+        TR_ASSERT(!active || !tor_->is_done());
         return active;
     }
 
@@ -603,48 +603,47 @@ public:
     static ReadState can_read(tr_peerIo* io, void* vmsgs, size_t* piece);
     static void got_error(tr_peerIo* /*io*/, tr_error const& /*error*/, void* vmsgs);
 
-public:
-    bool peerSupportsPex = false;
-    bool peerSupportsMetadataXfer = false;
-    bool clientSentLtepHandshake = false;
+private:
+    bool peer_supports_pex_ = false;
+    bool peer_supports_metadata_xfer_ = false;
+    bool client_sent_ltep_handshake_ = false;
 
-    size_t desired_request_count = 0;
+    size_t desired_request_count_ = 0;
 
-    uint8_t ut_pex_id = 0;
-    uint8_t ut_metadata_id = 0;
+    uint8_t ut_pex_id_ = 0;
+    uint8_t ut_metadata_id_ = 0;
 
-    tr_port dht_port;
+    tr_port dht_port_;
 
-    EncryptionPreference encryption_preference = EncryptionPreference::Unknown;
+    EncryptionPreference encryption_preference_ = EncryptionPreference::Unknown;
 
-    tr_torrent* const torrent;
+    tr_torrent* const tor_;
 
-    std::shared_ptr<tr_peerIo> const io;
+    std::shared_ptr<tr_peerIo> const io_;
 
     std::deque<peer_request> peer_requested_;
 
     std::array<std::vector<tr_pex>, NUM_TR_AF_INET_TYPES> pex_;
 
-    std::queue<int64_t> peerAskedForMetadata;
+    std::queue<int64_t> peer_requested_metadata_pieces_;
 
-    time_t clientSentAnythingAt = 0;
+    time_t client_sent_at_ = 0;
 
-    time_t chokeChangedAt = 0;
+    time_t choke_changed_at_ = 0;
 
     /* when we started batching the outMessages */
     // time_t outMessagesBatchedAt = 0;
 
-    tr_incoming incoming = {};
+    tr_incoming incoming_ = {};
 
     /* if the peer supports the Extension Protocol in BEP 10 and
        supplied a reqq argument, it's stored here. */
-    std::optional<size_t> reqq;
+    std::optional<size_t> reqq_;
 
     std::unique_ptr<libtransmission::Timer> pex_timer_;
 
     tr_bitfield have_;
 
-private:
     tr_peer_callback_bt const callback_;
     void* const callback_data_;
 
@@ -776,17 +775,15 @@ template<typename... Args>
 } // namespace
 
 template<typename... Args>
-void build_peer_message(tr_peerMsgsImpl const* const msgs, MessageWriter& out, uint8_t type, Args const&... args)
+size_t build_peer_message(MessageWriter& out, uint8_t type, Args const&... args)
 {
-    logtrace(msgs, build_log_message(type, args...));
-
     auto msg_len = sizeof(type);
     ((msg_len += get_param_length(args)), ...);
     out.add_uint32(msg_len);
     out.add_uint8(type);
     (add_param(out, args), ...);
 
-    TR_ASSERT(is_message_length_correct(msgs->torrent, type, msg_len));
+    return msg_len;
 }
 } // namespace protocol_send_message_helpers
 
@@ -795,10 +792,13 @@ size_t tr_peerMsgsImpl::protocol_send_message(uint8_t type, Args const&... args)
 {
     using namespace protocol_send_message_helpers;
 
+    logtrace(this, build_log_message(type, args...));
+
     auto out = MessageBuffer{};
-    build_peer_message(this, out, type, args...);
+    [[maybe_unused]] auto const msg_len = build_peer_message(out, type, args...);
+    TR_ASSERT(is_message_length_correct(tor_, type, msg_len));
     auto const n_bytes_added = std::size(out);
-    io->write(out, type == BtPeerMsgs::Piece);
+    io_->write(out, type == BtPeerMsgs::Piece);
     return n_bytes_added;
 }
 
@@ -810,13 +810,13 @@ size_t tr_peerMsgsImpl::protocol_send_keepalive() const
     out.add_uint32(0);
 
     auto const n_bytes_added = std::size(out);
-    io->write(out, false);
+    io_->write(out, false);
     return n_bytes_added;
 }
 
 size_t tr_peerMsgsImpl::protocol_send_reject(peer_request const& req) const
 {
-    TR_ASSERT(io->supports_fext());
+    TR_ASSERT(io_->supports_fext());
     return protocol_send_message(BtPeerMsgs::FextReject, req.index, req.offset, req.length);
 }
 
@@ -853,7 +853,7 @@ void tr_peerMsgsImpl::protocol_send_interest(bool b) const
 
 [[nodiscard]] std::optional<int64_t> tr_peerMsgsImpl::pop_next_metadata_request()
 {
-    auto& reqs = peerAskedForMetadata;
+    auto& reqs = peer_requested_metadata_pieces_;
 
     if (std::empty(reqs))
     {
@@ -869,19 +869,19 @@ void tr_peerMsgsImpl::protocol_send_interest(bool b) const
 
 void tr_peerMsgsImpl::send_ltep_handshake()
 {
-    if (clientSentLtepHandshake)
+    if (client_sent_ltep_handshake_)
     {
         return;
     }
 
     logtrace(this, "sending an ltep handshake");
-    clientSentLtepHandshake = true;
+    client_sent_ltep_handshake_ = true;
 
     /* decide if we want to advertise metadata xfer support (BEP 9) */
-    bool const allow_metadata_xfer = torrent->is_public();
+    bool const allow_metadata_xfer = tor_->is_public();
 
     /* decide if we want to advertise pex support */
-    bool const allow_pex = torrent->allows_pex();
+    bool const allow_pex = tor_->allows_pex();
 
     auto val = tr_variant{};
     tr_variantInitDict(&val, 8);
@@ -889,15 +889,15 @@ void tr_peerMsgsImpl::send_ltep_handshake()
 
     // If connecting to global peer, then use global address
     // Otherwise we are connecting to local peer, use bind address directly
-    if (auto const addr = io->address().is_global_unicast_address() ? session->global_address(TR_AF_INET) :
-                                                                      session->bind_address(TR_AF_INET);
+    if (auto const addr = io_->address().is_global_unicast_address() ? session->global_address(TR_AF_INET) :
+                                                                       session->bind_address(TR_AF_INET);
         addr && !addr->is_any())
     {
         TR_ASSERT(addr->is_ipv4());
         tr_variantDictAddRaw(&val, TR_KEY_ipv4, &addr->addr.addr4, sizeof(addr->addr.addr4));
     }
-    if (auto const addr = io->address().is_global_unicast_address() ? session->global_address(TR_AF_INET6) :
-                                                                      session->bind_address(TR_AF_INET6);
+    if (auto const addr = io_->address().is_global_unicast_address() ? session->global_address(TR_AF_INET6) :
+                                                                       session->bind_address(TR_AF_INET6);
         addr && !addr->is_any())
     {
         TR_ASSERT(addr->is_ipv6());
@@ -908,8 +908,7 @@ void tr_peerMsgsImpl::send_ltep_handshake()
     // It also adds "metadata_size" to the handshake message (not the
     // "m" dictionary) specifying an integer value of the number of
     // bytes of the metadata.
-    if (auto const info_dict_size = torrent->info_dict_size();
-        allow_metadata_xfer && torrent->has_metainfo() && info_dict_size > 0)
+    if (auto const info_dict_size = tor_->info_dict_size(); allow_metadata_xfer && tor_->has_metainfo() && info_dict_size > 0)
     {
         tr_variantDictAddInt(&val, TR_KEY_metadata_size, info_dict_size);
     }
@@ -934,7 +933,7 @@ void tr_peerMsgsImpl::send_ltep_handshake()
     {
         auto buf = std::array<std::byte, TR_ADDRSTRLEN>{};
         auto const begin = std::data(buf);
-        auto const end = io->address().to_compact(begin);
+        auto const end = io_->address().to_compact(begin);
         auto const len = end - begin;
         TR_ASSERT(len == tr_address::CompactAddrBytes[0] || len == tr_address::CompactAddrBytes[1]);
         tr_variantDictAddRaw(&val, TR_KEY_yourip, begin, len);
@@ -951,7 +950,7 @@ void tr_peerMsgsImpl::send_ltep_handshake()
     // the extension handshake 'upload_only'. Setting the value of this
     // key to 1 indicates that this peer is not interested in downloading
     // anything.
-    tr_variantDictAddBool(&val, TR_KEY_upload_only, torrent->is_done());
+    tr_variantDictAddBool(&val, TR_KEY_upload_only, tor_->is_done());
 
     if (allow_metadata_xfer || allow_pex)
     {
@@ -989,32 +988,32 @@ void tr_peerMsgsImpl::parse_ltep_handshake(MessageReader& payload)
     auto& [addr, port] = pex.socket_address;
     if (auto e = int64_t{}; tr_variantDictFindInt(&*var, TR_KEY_e, &e))
     {
-        encryption_preference = e != 0 ? EncryptionPreference::Yes : EncryptionPreference::No;
+        encryption_preference_ = e != 0 ? EncryptionPreference::Yes : EncryptionPreference::No;
 
-        if (encryption_preference == EncryptionPreference::Yes)
+        if (encryption_preference_ == EncryptionPreference::Yes)
         {
             pex.flags |= ADDED_F_ENCRYPTION_FLAG;
         }
     }
 
     /* check supported messages for utorrent pex */
-    peerSupportsPex = false;
-    peerSupportsMetadataXfer = false;
+    peer_supports_pex_ = false;
+    peer_supports_metadata_xfer_ = false;
 
     if (tr_variant* sub = nullptr; tr_variantDictFindDict(&*var, TR_KEY_m, &sub))
     {
         if (auto ut_pex = int64_t{}; tr_variantDictFindInt(sub, TR_KEY_ut_pex, &ut_pex))
         {
-            peerSupportsPex = ut_pex != 0;
-            ut_pex_id = static_cast<uint8_t>(ut_pex);
-            logtrace(this, fmt::format("msgs->ut_pex is {:d}", static_cast<int>(ut_pex_id)));
+            peer_supports_pex_ = ut_pex != 0;
+            ut_pex_id_ = static_cast<uint8_t>(ut_pex);
+            logtrace(this, fmt::format("msgs->ut_pex is {:d}", ut_pex_id_));
         }
 
         if (auto ut_metadata = int64_t{}; tr_variantDictFindInt(sub, TR_KEY_ut_metadata, &ut_metadata))
         {
-            peerSupportsMetadataXfer = ut_metadata != 0;
-            ut_metadata_id = static_cast<uint8_t>(ut_metadata);
-            logtrace(this, fmt::format("msgs->ut_metadata_id is {:d}", static_cast<int>(ut_metadata_id)));
+            peer_supports_metadata_xfer_ = ut_metadata != 0;
+            ut_metadata_id_ = static_cast<uint8_t>(ut_metadata);
+            logtrace(this, fmt::format("msgs->ut_metadata_id_ is {:d}", ut_metadata_id_));
         }
 
         if (auto ut_holepunch = int64_t{}; tr_variantDictFindInt(sub, TR_KEY_ut_holepunch, &ut_holepunch))
@@ -1031,11 +1030,11 @@ void tr_peerMsgsImpl::parse_ltep_handshake(MessageReader& payload)
     {
         if (!tr_metadata_download::is_valid_metadata_size(metadata_size))
         {
-            peerSupportsMetadataXfer = false;
+            peer_supports_metadata_xfer_ = false;
         }
         else
         {
-            torrent->maybe_start_metadata_transfer(metadata_size);
+            tor_->maybe_start_metadata_transfer(metadata_size);
         }
     }
 
@@ -1064,24 +1063,24 @@ void tr_peerMsgsImpl::parse_ltep_handshake(MessageReader& payload)
 
     std::byte const* addr_compact = nullptr;
     auto addr_len = size_t{};
-    if (io->is_incoming() && tr_variantDictFindRaw(&*var, TR_KEY_ipv4, &addr_compact, &addr_len) &&
+    if (io_->is_incoming() && tr_variantDictFindRaw(&*var, TR_KEY_ipv4, &addr_compact, &addr_len) &&
         addr_len == tr_address::CompactAddrBytes[TR_AF_INET])
     {
         std::tie(addr, std::ignore) = tr_address::from_compact_ipv4(addr_compact);
-        tr_peerMgrAddPex(torrent, TR_PEER_FROM_LTEP, &pex, 1);
+        tr_peerMgrAddPex(tor_, TR_PEER_FROM_LTEP, &pex, 1);
     }
 
-    if (io->is_incoming() && tr_variantDictFindRaw(&*var, TR_KEY_ipv6, &addr_compact, &addr_len) &&
+    if (io_->is_incoming() && tr_variantDictFindRaw(&*var, TR_KEY_ipv6, &addr_compact, &addr_len) &&
         addr_len == tr_address::CompactAddrBytes[TR_AF_INET6])
     {
         std::tie(addr, std::ignore) = tr_address::from_compact_ipv6(addr_compact);
-        tr_peerMgrAddPex(torrent, TR_PEER_FROM_LTEP, &pex, 1);
+        tr_peerMgrAddPex(tor_, TR_PEER_FROM_LTEP, &pex, 1);
     }
 
     /* get peer's maximum request queue size */
     if (auto reqq_in = int64_t{}; tr_variantDictFindInt(&*var, TR_KEY_reqq, &reqq_in))
     {
-        reqq = reqq_in;
+        reqq_ = reqq_in;
     }
 }
 
@@ -1112,14 +1111,15 @@ void tr_peerMsgsImpl::parse_ut_metadata(MessageReader& payload_in)
     if (auto const piece_len = msg_end - serde.end();
         msg_type == MetadataMsgType::Data && piece * MetadataPieceSize + piece_len <= total_size)
     {
-        torrent->set_metadata_piece(piece, serde.end(), piece_len);
+        tor_->set_metadata_piece(piece, serde.end(), piece_len);
     }
 
     if (msg_type == MetadataMsgType::Request)
     {
-        if (piece >= 0 && torrent->has_metainfo() && torrent->is_public() && std::size(peerAskedForMetadata) < MetadataReqQ)
+        if (piece >= 0 && tor_->has_metainfo() && tor_->is_public() &&
+            std::size(peer_requested_metadata_pieces_) < MetadataReqQ)
         {
-            peerAskedForMetadata.push(piece);
+            peer_requested_metadata_pieces_.push(piece);
         }
         else
         {
@@ -1128,15 +1128,14 @@ void tr_peerMsgsImpl::parse_ut_metadata(MessageReader& payload_in)
             tr_variantInitDict(&v, 2);
             tr_variantDictAddInt(&v, TR_KEY_msg_type, MetadataMsgType::Reject);
             tr_variantDictAddInt(&v, TR_KEY_piece, piece);
-            protocol_send_message(BtPeerMsgs::Ltep, ut_metadata_id, serde.to_string(v));
+            protocol_send_message(BtPeerMsgs::Ltep, ut_metadata_id_, serde.to_string(v));
         }
     }
 }
 
 void tr_peerMsgsImpl::parse_ut_pex(MessageReader& payload) const
 {
-    auto* const tor = torrent;
-    if (!tor->allows_pex())
+    if (!tor_->allows_pex())
     {
         return;
     }
@@ -1157,7 +1156,7 @@ void tr_peerMsgsImpl::parse_ut_pex(MessageReader& payload) const
 
             auto pex = tr_pex::from_compact_ipv4(added, added_len, added_f, added_f_len);
             pex.resize(std::min(MaxPexPeerCount, std::size(pex)));
-            tr_peerMgrAddPex(tor, TR_PEER_FROM_PEX, std::data(pex), std::size(pex));
+            tr_peerMgrAddPex(tor_, TR_PEER_FROM_PEX, std::data(pex), std::size(pex));
         }
 
         if (tr_variantDictFindRaw(&*var, TR_KEY_added6, &added, &added_len))
@@ -1172,7 +1171,7 @@ void tr_peerMsgsImpl::parse_ut_pex(MessageReader& payload) const
 
             auto pex = tr_pex::from_compact_ipv6(added, added_len, added_f, added_f_len);
             pex.resize(std::min(MaxPexPeerCount, std::size(pex)));
-            tr_peerMgrAddPex(tor, TR_PEER_FROM_PEX, std::data(pex), std::size(pex));
+            tr_peerMgrAddPex(tor_, TR_PEER_FROM_PEX, std::data(pex), std::size(pex));
         }
     }
 }
@@ -1188,7 +1187,7 @@ void tr_peerMsgsImpl::parse_ltep(MessageReader& payload)
         logtrace(this, "got ltep handshake");
         parse_ltep_handshake(payload);
 
-        if (io->supports_ltep())
+        if (io_->supports_ltep())
         {
             send_ltep_handshake();
             send_pex();
@@ -1197,13 +1196,13 @@ void tr_peerMsgsImpl::parse_ltep(MessageReader& payload)
     else if (ltep_msgid == UT_PEX_ID)
     {
         logtrace(this, "got ut pex");
-        peerSupportsPex = true;
+        peer_supports_pex_ = true;
         parse_ut_pex(payload);
     }
     else if (ltep_msgid == UT_METADATA_ID)
     {
         logtrace(this, "got ut metadata");
-        peerSupportsMetadataXfer = true;
+        peer_supports_metadata_xfer_ = true;
         parse_ut_metadata(payload);
     }
     else
@@ -1226,13 +1225,13 @@ void tr_peerMsgsImpl::parse_ltep(MessageReader& payload)
         return false;
     }
 
-    if (!tr_torrentReqIsValid(torrent, req.index, req.offset, req.length))
+    if (!tr_torrentReqIsValid(tor_, req.index, req.offset, req.length))
     {
         logtrace(this, "rejecting an invalid request.");
         return false;
     }
 
-    if (!torrent->has_piece(req.index))
+    if (!tor_->has_piece(req.index))
     {
         logtrace(this, "rejecting request for a piece we don't have.");
         return false;
@@ -1247,7 +1246,7 @@ void tr_peerMsgsImpl::peer_made_request(peer_request const& req)
     {
         peer_requested_.emplace_back(req);
     }
-    else if (io->supports_fext())
+    else if (io_->supports_fext())
     {
         protocol_send_reject(req);
     }
@@ -1260,9 +1259,9 @@ ReadResult tr_peerMsgsImpl::read_piece_data(MessageReader& payload)
     auto const offset = payload.to_uint32();
     auto const len = std::size(payload);
 
-    auto const loc = torrent->piece_loc(piece, offset);
+    auto const loc = tor_->piece_loc(piece, offset);
     auto const block = loc.block;
-    auto const block_size = torrent->block_size(block);
+    auto const block_size = tor_->block_size(block);
 
     logtrace(this, fmt::format("got {:d} bytes for req {:d}:{:d}->{:d}", len, piece, offset, len));
 
@@ -1272,7 +1271,7 @@ ReadResult tr_peerMsgsImpl::read_piece_data(MessageReader& payload)
         return { READ_ERR, len };
     }
 
-    if (!tr_peerMgrDidPeerRequest(torrent, this, block))
+    if (!tr_peerMgrDidPeerRequest(tor_, this, block))
     {
         logwarn(this, fmt::format("got unrequested piece {:d}:{:d}->{:d}", piece, offset, len));
         return { READ_ERR, len };
@@ -1288,7 +1287,7 @@ ReadResult tr_peerMsgsImpl::read_piece_data(MessageReader& payload)
         return { ok ? READ_NOW : READ_ERR, len };
     }
 
-    auto& blocks = incoming.blocks;
+    auto& blocks = incoming_.blocks;
     auto& incoming_block = blocks.try_emplace(block, block_size).first->second;
     payload.to_buf(std::data(*incoming_block.buf) + loc.block_offset, len);
 
@@ -1310,7 +1309,7 @@ ReadResult tr_peerMsgsImpl::read_piece_data(MessageReader& payload)
 
 ReadResult tr_peerMsgsImpl::process_peer_message(uint8_t id, MessageReader& payload)
 {
-    bool const fext = io->supports_fext();
+    bool const fext = io_->supports_fext();
 
     auto ui32 = uint32_t{};
 
@@ -1322,7 +1321,7 @@ ReadResult tr_peerMsgsImpl::process_peer_message(uint8_t id, MessageReader& payl
             static_cast<int>(id),
             std::size(payload)));
 
-    if (!is_message_length_correct(torrent, id, sizeof(id) + std::size(payload)))
+    if (!is_message_length_correct(tor_, id, sizeof(id) + std::size(payload)))
     {
         logdbg(
             this,
@@ -1372,7 +1371,7 @@ ReadResult tr_peerMsgsImpl::process_peer_message(uint8_t id, MessageReader& payl
         ui32 = payload.to_uint32();
         logtrace(this, fmt::format("got Have: {:d}", ui32));
 
-        if (torrent->has_metainfo() && ui32 >= torrent->piece_count())
+        if (tor_->has_metainfo() && ui32 >= tor_->piece_count())
         {
             publish(tr_peer_event::GotError(ERANGE));
             return { READ_ERR, {} };
@@ -1390,7 +1389,7 @@ ReadResult tr_peerMsgsImpl::process_peer_message(uint8_t id, MessageReader& payl
 
     case BtPeerMsgs::Bitfield:
         logtrace(this, "got a bitfield");
-        have_ = tr_bitfield{ torrent->has_metainfo() ? torrent->piece_count() : std::size(payload) * 8 };
+        have_ = tr_bitfield{ tor_->has_metainfo() ? tor_->piece_count() : std::size(payload) * 8 };
         have_.set_raw(reinterpret_cast<uint8_t const*>(std::data(payload)), std::size(payload));
         publish(tr_peer_event::GotBitfield(&have_));
         invalidate_percent_done();
@@ -1447,10 +1446,10 @@ ReadResult tr_peerMsgsImpl::process_peer_message(uint8_t id, MessageReader& payl
             logtrace(this, "Got a BtPeerMsgs::Port");
 
             auto const hport = payload.to_uint16();
-            if (auto const port = tr_port::from_host(hport); !std::empty(port))
+            if (auto const dht_port = tr_port::from_host(hport); !std::empty(dht_port))
             {
-                dht_port = port;
-                session->maybe_add_dht_node(io->address(), dht_port);
+                dht_port_ = dht_port;
+                session->maybe_add_dht_node(io_->address(), dht_port_);
             }
         }
         break;
@@ -1530,7 +1529,7 @@ ReadResult tr_peerMsgsImpl::process_peer_message(uint8_t id, MessageReader& payl
 
             if (fext)
             {
-                publish(tr_peer_event::GotRejected(torrent->block_info(), torrent->piece_loc(r.index, r.offset).block));
+                publish(tr_peer_event::GotRejected(tor_->block_info(), tor_->piece_loc(r.index, r.offset).block));
             }
             else
             {
@@ -1557,7 +1556,7 @@ ReadResult tr_peerMsgsImpl::process_peer_message(uint8_t id, MessageReader& payl
 /* returns 0 on success, or an errno on failure */
 int tr_peerMsgsImpl::client_got_block(std::unique_ptr<Cache::BlockData> block_data, tr_block_index_t const block)
 {
-    auto const n_expected = torrent->block_size(block);
+    auto const n_expected = tor_->block_size(block);
 
     if (!block_data)
     {
@@ -1565,7 +1564,7 @@ int tr_peerMsgsImpl::client_got_block(std::unique_ptr<Cache::BlockData> block_da
         return EMSGSIZE;
     }
 
-    if (std::size(*block_data) != torrent->block_size(block))
+    if (std::size(*block_data) != tor_->block_size(block))
     {
         logdbg(this, fmt::format("wrong block size: expected {:d}, got {:d}", n_expected, std::size(*block_data)));
         return EMSGSIZE;
@@ -1573,14 +1572,14 @@ int tr_peerMsgsImpl::client_got_block(std::unique_ptr<Cache::BlockData> block_da
 
     logtrace(this, fmt::format("got block {:d}", block));
 
-    if (!tr_peerMgrDidPeerRequest(torrent, this, block))
+    if (!tr_peerMgrDidPeerRequest(tor_, this, block))
     {
         logdbg(this, "we didn't ask for this message...");
         return 0;
     }
 
-    auto const loc = torrent->block_loc(block);
-    if (torrent->has_piece(loc.piece))
+    auto const loc = tor_->block_loc(block);
+    if (tor_->has_piece(loc.piece))
     {
         logtrace(this, "we did ask for this message, but the piece is already complete...");
         return 0;
@@ -1588,13 +1587,13 @@ int tr_peerMsgsImpl::client_got_block(std::unique_ptr<Cache::BlockData> block_da
 
     // NB: if writeBlock() fails the torrent may be paused.
     // If this happens, this object will be destructed and must no longer be used.
-    if (auto const err = session->cache->write_block(torrent->id(), block, std::move(block_data)); err != 0)
+    if (auto const err = session->cache->write_block(tor_->id(), block, std::move(block_data)); err != 0)
     {
         return err;
     }
 
     blame.set(loc.piece);
-    publish(tr_peer_event::GotBlock(torrent->block_info(), block));
+    publish(tr_peer_event::GotBlock(tor_->block_info(), block));
 
     return 0;
 }
@@ -1613,7 +1612,7 @@ void tr_peerMsgsImpl::did_write(tr_peerIo* /*io*/, size_t bytes_written, bool wa
 
 ReadState tr_peerMsgsImpl::can_read(tr_peerIo* io, void* vmsgs, size_t* piece)
 {
-    auto* msgs = static_cast<tr_peerMsgsImpl*>(vmsgs);
+    auto* const msgs = static_cast<tr_peerMsgsImpl*>(vmsgs);
 
     // https://www.bittorrent.org/beps/bep_0003.html
     // Next comes an alternating stream of length prefixes and messages.
@@ -1627,7 +1626,7 @@ ReadState tr_peerMsgsImpl::can_read(tr_peerIo* io, void* vmsgs, size_t* piece)
     // The payload is message dependent.
 
     // read <length prefix>
-    auto& current_message_len = msgs->incoming.length; // the full message payload length. Includes the +1 for id length
+    auto& current_message_len = msgs->incoming_.length; // the full message payload length. Includes the +1 for id length
     if (!current_message_len)
     {
         auto message_len = uint32_t{};
@@ -1651,7 +1650,7 @@ ReadState tr_peerMsgsImpl::can_read(tr_peerIo* io, void* vmsgs, size_t* piece)
     }
 
     // read <message ID>
-    auto& current_message_type = msgs->incoming.id;
+    auto& current_message_type = msgs->incoming_.id;
     if (!current_message_type)
     {
         auto message_type = uint8_t{};
@@ -1665,7 +1664,7 @@ ReadState tr_peerMsgsImpl::can_read(tr_peerIo* io, void* vmsgs, size_t* piece)
     }
 
     // read <payload>
-    auto& current_payload = msgs->incoming.payload;
+    auto& current_payload = msgs->incoming_.payload;
     auto const full_payload_len = *current_message_len - sizeof(*current_message_type);
     auto n_left = full_payload_len - std::size(current_payload);
     auto const [buf, n_this_pass] = current_payload.reserve_space(std::min(n_left, io->read_buffer_size()));
@@ -1697,37 +1696,35 @@ ReadState tr_peerMsgsImpl::can_read(tr_peerIo* io, void* vmsgs, size_t* piece)
 
 void tr_peerMsgsImpl::update_desired_request_count()
 {
-    desired_request_count = max_available_reqs();
+    desired_request_count_ = max_available_reqs();
 }
 
 void tr_peerMsgsImpl::update_metadata_requests(time_t now) const
 {
-    if (!peerSupportsMetadataXfer)
+    if (!peer_supports_metadata_xfer_)
     {
         return;
     }
 
-    if (auto const piece = torrent->get_next_metadata_request(now); piece)
+    if (auto const piece = tor_->get_next_metadata_request(now); piece)
     {
         auto tmp = tr_variant{};
         tr_variantInitDict(&tmp, 3);
         tr_variantDictAddInt(&tmp, TR_KEY_msg_type, MetadataMsgType::Request);
         tr_variantDictAddInt(&tmp, TR_KEY_piece, *piece);
-        protocol_send_message(BtPeerMsgs::Ltep, ut_metadata_id, tr_variant_serde::benc().to_string(tmp));
+        protocol_send_message(BtPeerMsgs::Ltep, ut_metadata_id_, tr_variant_serde::benc().to_string(tmp));
     }
 }
 
 void tr_peerMsgsImpl::update_block_requests()
 {
-    auto* const tor = torrent;
-
-    if (!tor->client_can_download())
+    if (!tor_->client_can_download())
     {
         return;
     }
 
-    auto const n_active = tr_peerMgrCountActiveRequestsToPeer(tor, this);
-    if (n_active >= desired_request_count)
+    auto const n_active = tr_peerMgrCountActiveRequestsToPeer(tor_, this);
+    if (n_active >= desired_request_count_)
     {
         return;
     }
@@ -1735,8 +1732,8 @@ void tr_peerMsgsImpl::update_block_requests()
     TR_ASSERT(client_is_interested());
     TR_ASSERT(!client_is_choked());
 
-    auto const n_wanted = desired_request_count - n_active;
-    if (auto const requests = tr_peerMgrGetNextRequests(tor, this, n_wanted); !std::empty(requests))
+    auto const n_wanted = desired_request_count_ - n_active;
+    if (auto const requests = tr_peerMgrGetNextRequests(tor_, this, n_wanted); !std::empty(requests))
     {
         request_blocks(std::data(requests), std::size(requests));
     }
@@ -1751,7 +1748,7 @@ void tr_peerMsgsImpl::update_block_requests()
         return {};
     }
 
-    auto data = torrent->get_metadata_piece(*piece);
+    auto data = tor_->get_metadata_piece(*piece);
     if (!data)
     {
         // send a reject
@@ -1759,7 +1756,7 @@ void tr_peerMsgsImpl::update_block_requests()
         tr_variantInitDict(&tmp, 2);
         tr_variantDictAddInt(&tmp, TR_KEY_msg_type, MetadataMsgType::Reject);
         tr_variantDictAddInt(&tmp, TR_KEY_piece, *piece);
-        return protocol_send_message(BtPeerMsgs::Ltep, ut_metadata_id, tr_variant_serde::benc().to_string(tmp));
+        return protocol_send_message(BtPeerMsgs::Ltep, ut_metadata_id_, tr_variant_serde::benc().to_string(tmp));
     }
 
     // send the metadata
@@ -1767,13 +1764,13 @@ void tr_peerMsgsImpl::update_block_requests()
     tr_variantInitDict(&tmp, 3);
     tr_variantDictAddInt(&tmp, TR_KEY_msg_type, MetadataMsgType::Data);
     tr_variantDictAddInt(&tmp, TR_KEY_piece, *piece);
-    tr_variantDictAddInt(&tmp, TR_KEY_total_size, torrent->info_dict_size());
-    return protocol_send_message(BtPeerMsgs::Ltep, ut_metadata_id, tr_variant_serde::benc().to_string(tmp), *data);
+    tr_variantDictAddInt(&tmp, TR_KEY_total_size, tor_->info_dict_size());
+    return protocol_send_message(BtPeerMsgs::Ltep, ut_metadata_id_, tr_variant_serde::benc().to_string(tmp), *data);
 }
 
 [[nodiscard]] size_t tr_peerMsgsImpl::add_next_piece(uint64_t now)
 {
-    if (std::empty(peer_requested_) || io->get_write_buffer_space(now) == 0U)
+    if (std::empty(peer_requested_) || io_->get_write_buffer_space(now) == 0U)
     {
         return {};
     }
@@ -1782,21 +1779,21 @@ void tr_peerMsgsImpl::update_block_requests()
     peer_requested_.pop_front();
 
     auto buf = std::array<uint8_t, tr_block_info::BlockSize>{};
-    auto ok = is_valid_request(req) && torrent->has_piece(req.index);
+    auto ok = is_valid_request(req) && tor_->has_piece(req.index);
 
     if (ok)
     {
-        ok = torrent->ensure_piece_is_checked(req.index);
+        ok = tor_->ensure_piece_is_checked(req.index);
 
         if (!ok)
         {
-            torrent->error().set_local_error(fmt::format("Please Verify Local Data! Piece #{:d} is corrupt.", req.index));
+            tor_->error().set_local_error(fmt::format("Please Verify Local Data! Piece #{:d} is corrupt.", req.index));
         }
     }
 
     if (ok)
     {
-        ok = session->cache->read_block(*torrent, torrent->piece_loc(req.index, req.offset), req.length, std::data(buf)) == 0;
+        ok = session->cache->read_block(*tor_, tor_->piece_loc(req.index, req.offset), req.length, std::data(buf)) == 0;
     }
 
     if (ok)
@@ -1805,7 +1802,7 @@ void tr_peerMsgsImpl::update_block_requests()
         return protocol_send_message(BtPeerMsgs::Piece, req.index, req.offset, piece_data);
     }
 
-    if (io->supports_fext())
+    if (io_->supports_fext())
     {
         return protocol_send_reject(req);
     }
@@ -1839,7 +1836,7 @@ void tr_peerMsgsImpl::update_block_requests()
         }
     }
 
-    if (clientSentAnythingAt != 0 && now_sec - clientSentAnythingAt > KeepaliveIntervalSecs)
+    if (client_sent_at_ != 0 && now_sec - client_sent_at_ > KeepaliveIntervalSecs)
     {
         n_bytes_written += protocol_send_keepalive();
     }
@@ -1872,19 +1869,19 @@ void tr_peerMsgsImpl::got_error(tr_peerIo* /*io*/, tr_error const& /*error*/, vo
 
 void tr_peerMsgsImpl::tell_peer_what_we_have()
 {
-    bool const fext = io->supports_fext();
+    bool const fext = io_->supports_fext();
 
-    if (fext && torrent->has_all())
+    if (fext && tor_->has_all())
     {
         protocol_send_message(BtPeerMsgs::FextHaveAll);
     }
-    else if (fext && torrent->has_none())
+    else if (fext && tor_->has_none())
     {
         protocol_send_message(BtPeerMsgs::FextHaveNone);
     }
-    else if (!torrent->has_none())
+    else if (!tor_->has_none())
     {
-        protocol_send_message(BtPeerMsgs::Bitfield, torrent->create_piece_bitfield());
+        protocol_send_message(BtPeerMsgs::Bitfield, tor_->create_piece_bitfield());
     }
 }
 
@@ -1892,7 +1889,7 @@ void tr_peerMsgsImpl::tell_peer_what_we_have()
 
 size_t tr_peerMsgsImpl::max_available_reqs() const
 {
-    if (torrent->is_done() || !torrent->has_metainfo() || client_is_choked() || !client_is_interested())
+    if (tor_->is_done() || !tor_->has_metainfo() || client_is_choked() || !client_is_interested())
     {
         return 0;
     }
@@ -1901,15 +1898,15 @@ size_t tr_peerMsgsImpl::max_available_reqs() const
     // TODO: this needs to consider all the other peers as well...
     uint64_t const now = tr_time_msec();
     auto rate = get_piece_speed(now, TR_PEER_TO_CLIENT);
-    if (torrent->uses_speed_limit(TR_PEER_TO_CLIENT))
+    if (tor_->uses_speed_limit(TR_PEER_TO_CLIENT))
     {
-        rate = std::min(rate, torrent->speed_limit(TR_PEER_TO_CLIENT));
+        rate = std::min(rate, tor_->speed_limit(TR_PEER_TO_CLIENT));
     }
 
     // honor the session limits, if enabled
-    if (torrent->uses_session_limits())
+    if (tor_->uses_session_limits())
     {
-        if (auto const limit = torrent->session->active_speed_limit(TR_PEER_TO_CLIENT); limit)
+        if (auto const limit = tor_->session->active_speed_limit(TR_PEER_TO_CLIENT); limit)
         {
             rate = std::min(rate, *limit);
         }
@@ -1920,7 +1917,7 @@ size_t tr_peerMsgsImpl::max_available_reqs() const
     static auto constexpr Floor = size_t{ 32 };
     static size_t constexpr Seconds = RequestBufSecs;
     size_t const estimated_blocks_in_period = (rate.base_quantity() * Seconds) / tr_block_info::BlockSize;
-    auto const ceil = reqq.value_or(250);
+    auto const ceil = reqq_.value_or(250);
 
     return std::clamp(estimated_blocks_in_period, Floor, ceil);
 }
@@ -1930,7 +1927,7 @@ size_t tr_peerMsgsImpl::max_available_reqs() const
 void tr_peerMsgsImpl::send_pex()
 {
     // only send pex if both the torrent and peer support it
-    if (!peerSupportsPex || !torrent->allows_pex())
+    if (!peer_supports_pex_ || !tor_->allows_pex())
     {
         return;
     }
@@ -1948,7 +1945,7 @@ void tr_peerMsgsImpl::send_pex()
         auto const ip_type = static_cast<tr_address_type>(i);
 
         auto& old_pex = pex_[i];
-        auto new_pex = tr_peerMgrGetPeers(torrent, ip_type, TR_PEERS_CONNECTED, MaxPexPeerCount);
+        auto new_pex = tr_peerMgrGetPeers(tor_, ip_type, TR_PEERS_CONNECTED, MaxPexPeerCount);
         auto added = std::vector<tr_pex>{};
         added.reserve(std::size(new_pex));
         std::set_difference(
@@ -2026,7 +2023,7 @@ void tr_peerMsgsImpl::send_pex()
         }
     }
 
-    protocol_send_message(BtPeerMsgs::Ltep, ut_pex_id, tr_variant_serde::benc().to_string(tr_variant{ std::move(map) }));
+    protocol_send_message(BtPeerMsgs::Ltep, ut_pex_id_, tr_variant_serde::benc().to_string(tr_variant{ std::move(map) }));
 }
 
 } // namespace
