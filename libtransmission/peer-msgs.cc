@@ -401,8 +401,6 @@ public:
 
     void on_torrent_got_metainfo() noexcept override
     {
-        invalidate_percent_done();
-
         update_active();
     }
 
@@ -413,8 +411,8 @@ public:
 
     void set_choke(bool peer_is_choked) override
     {
-        time_t const now = tr_time();
-        time_t const fibrillation_time = now - MinChokePeriodSec;
+        auto const now = tr_time();
+        auto const fibrillation_time = now - MinChokePeriodSec;
 
         if (choke_changed_at_ > fibrillation_time)
         {
@@ -520,16 +518,15 @@ public:
     }
 
 private:
-    // --- What are these?? (tearfur)
-
-    void invalidate_percent_done()
-    {
-        update_interest();
-    }
+    // ---
 
     void update_interest()
     {
         // TODO(ckerr) -- might need to poke the mgr on startup
+
+        // additional note (tearfur)
+        // by "poke the mgr", Charles probably meant calling isPeerInteresting(),
+        // then pass the result to set_interesting()
     }
 
     // ---
@@ -765,9 +762,6 @@ private:
 
 namespace protocol_send_message_helpers
 {
-namespace
-{
-
 [[nodiscard]] constexpr auto get_param_length(uint8_t param) noexcept
 {
     return sizeof(param);
@@ -842,7 +836,6 @@ template<typename... Args>
     (text.append(log_param(args)), ...);
     return text;
 }
-} // namespace
 
 template<typename... Args>
 size_t build_peer_message(MessageWriter& out, uint8_t type, Args const&... args)
@@ -1202,7 +1195,7 @@ void tr_peerMsgsImpl::parse_ltep_handshake(MessageReader& payload)
 
     logtrace(this, fmt::format("here is the base64-encoded handshake: [{:s}]", tr_base64_encode(handshake_sv)));
 
-    /* does the peer prefer encrypted connections? */
+    // does the peer prefer encrypted connections?
     auto pex = tr_pex{};
     auto& [addr, port] = pex.socket_address;
     if (auto e = int64_t{}; tr_variantDictFindInt(&*var, TR_KEY_e, &e))
@@ -1215,7 +1208,7 @@ void tr_peerMsgsImpl::parse_ltep_handshake(MessageReader& payload)
         }
     }
 
-    /* check supported messages for utorrent pex */
+    // check supported messages for utorrent pex
     peer_supports_pex_ = false;
     peer_supports_metadata_xfer_ = false;
 
@@ -1244,7 +1237,7 @@ void tr_peerMsgsImpl::parse_ltep_handshake(MessageReader& payload)
         }
     }
 
-    /* look for metainfo size (BEP 9) */
+    // look for metainfo size (BEP 9)
     if (auto metadata_size = int64_t{}; tr_variantDictFindInt(&*var, TR_KEY_metadata_size, &metadata_size))
     {
         if (!tr_metadata_download::is_valid_metadata_size(metadata_size))
@@ -1257,7 +1250,7 @@ void tr_peerMsgsImpl::parse_ltep_handshake(MessageReader& payload)
         }
     }
 
-    /* look for upload_only (BEP 21) */
+    // look for upload_only (BEP 21)
     if (auto upload_only = int64_t{}; tr_variantDictFindInt(&*var, TR_KEY_upload_only, &upload_only))
     {
         pex.flags |= ADDED_F_SEED_FLAG;
@@ -1431,7 +1424,6 @@ ReadResult tr_peerMsgsImpl::process_peer_message(uint8_t id, MessageReader& payl
             publish(tr_peer_event::GotHave(ui32));
         }
 
-        invalidate_percent_done();
         break;
 
     case BtPeerMsgs::Bitfield:
@@ -1439,7 +1431,6 @@ ReadResult tr_peerMsgsImpl::process_peer_message(uint8_t id, MessageReader& payl
         have_ = tr_bitfield{ tor_->has_metainfo() ? tor_->piece_count() : std::size(payload) * 8 };
         have_.set_raw(reinterpret_cast<uint8_t const*>(std::data(payload)), std::size(payload));
         publish(tr_peer_event::GotBitfield(&have_));
-        invalidate_percent_done();
         break;
 
     case BtPeerMsgs::Request:
@@ -1480,7 +1471,6 @@ ReadResult tr_peerMsgsImpl::process_peer_message(uint8_t id, MessageReader& payl
 
     case BtPeerMsgs::Piece:
         return read_piece_data(payload);
-        break;
 
     case BtPeerMsgs::Port:
         // https://www.bittorrent.org/beps/bep_0005.html
@@ -1540,7 +1530,6 @@ ReadResult tr_peerMsgsImpl::process_peer_message(uint8_t id, MessageReader& payl
         {
             have_.set_has_all();
             publish(tr_peer_event::GotHaveAll());
-            invalidate_percent_done();
         }
         else
         {
@@ -1557,7 +1546,6 @@ ReadResult tr_peerMsgsImpl::process_peer_message(uint8_t id, MessageReader& payl
         {
             have_.set_has_none();
             publish(tr_peer_event::GotHaveNone());
-            invalidate_percent_done();
         }
         else
         {
