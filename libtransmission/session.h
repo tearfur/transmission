@@ -1157,7 +1157,7 @@ public:
 
 private:
     // depends-on: timer_maker_, blocklists_, top_bandwidth_, utp_context, torrents_, web_
-    std::unique_ptr<struct tr_peerMgr, void (*)(struct tr_peerMgr*)> peer_mgr_;
+    std::unique_ptr<tr_peerMgr, void (*)(tr_peerMgr*)> peer_mgr_;
 
     // depends-on: peer_mgr_, advertised_peer_port_, torrents_
     LpdMediator lpd_mediator_{ *this };

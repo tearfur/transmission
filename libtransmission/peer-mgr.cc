@@ -135,8 +135,6 @@ private:
     tr_torrents& torrents_;
 };
 
-using Handshakes = std::unordered_map<tr_socket_address, tr_handshake>;
-
 } // anonymous namespace
 
 void tr_peer_info::merge(tr_peer_info& that) noexcept
@@ -1073,7 +1071,7 @@ libtransmission::ObserverTag tr_swarm::WishlistMediator::observe_sequential_down
 
 // ---
 
-struct tr_peerMgr
+class tr_peerMgr
 {
 private:
     static auto constexpr BandwidthTimerPeriod = 500ms;
@@ -1101,15 +1099,15 @@ public:
     using OutboundCandidates = small::
         max_size_vector<std::pair<tr_torrent_id_t, tr_socket_address>, OutboundCandidateListCapacity>;
 
-    explicit tr_peerMgr(
+    tr_peerMgr(
         tr_session* session_in,
         libtransmission::TimerMaker& timer_maker,
         tr_torrents& torrents,
         libtransmission::Blocklists& blocklist)
         : session{ session_in }
+        , handshake_mediator_{ *session, timer_maker, torrents }
         , torrents_{ torrents }
         , blocklists_{ blocklist }
-        , handshake_mediator_{ *session, timer_maker, torrents }
         , bandwidth_timer_{ timer_maker.create([this]() { bandwidth_pulse(); }) }
         , rechoke_timer_{ timer_maker.create([this]() { rechoke_pulse_marshall(); }) }
         , refill_upkeep_timer_{ timer_maker.create([this]() { refill_upkeep(); }) }
@@ -1133,7 +1131,7 @@ public:
     ~tr_peerMgr()
     {
         auto const lock = unique_lock();
-        incoming_handshakes.clear();
+        incoming_handshakes_.clear();
     }
 
     void rechoke_soon() noexcept
@@ -1147,10 +1145,28 @@ public:
         return tor == nullptr ? nullptr : tor->swarm;
     }
 
+    [[nodiscard]] bool has_incoming_handshake(tr_socket_address const& key) const
+    {
+        return incoming_handshakes_.count(key) != 0U;
+    }
+
+    template<typename... Args>
+    void start_incoming_handshake(tr_socket_address const& key, Args&&... args)
+    {
+        incoming_handshakes_.try_emplace(key, std::forward<Args>(args)...);
+    }
+
+    bool end_incoming_handshake(tr_socket_address const& key)
+    {
+        return incoming_handshakes_.erase(key) != 0U;
+    }
+
+    [[nodiscard]] bool is_blocklisted(tr_address const& addr) const noexcept
+    {
+        return blocklists_.contains(addr);
+    }
+
     tr_session* const session;
-    tr_torrents& torrents_;
-    libtransmission::Blocklists const& blocklists_;
-    Handshakes incoming_handshakes;
 
     HandshakeMediator handshake_mediator_;
 
@@ -1160,6 +1176,17 @@ private:
     void rechoke_pulse() const;
     void reconnect_pulse();
     void refill_upkeep() const;
+
+    void pump_all_peers() const
+    {
+        for (auto* const tor : torrents_)
+        {
+            for (auto* const peer : tor->swarm->peers)
+            {
+                peer->pulse();
+            }
+        }
+    }
 
     void rechoke_pulse_marshall()
     {
@@ -1182,6 +1209,10 @@ private:
             }
         }
     }
+
+    tr_torrents& torrents_;
+    libtransmission::Blocklists& blocklists_;
+    std::unordered_map<tr_socket_address, tr_handshake> incoming_handshakes_;
 
     OutboundCandidates outbound_candidates_;
 
@@ -1322,7 +1353,7 @@ void create_bit_torrent_peer(tr_torrent* tor, std::shared_ptr<tr_peerIo> io, tr_
 
     if (result.io->is_incoming())
     {
-        manager->incoming_handshakes.erase(socket_address);
+        manager->end_incoming_handshake(socket_address);
     }
     else if (info != nullptr)
     {
@@ -1409,12 +1440,12 @@ void tr_peerMgrAddIncoming(tr_peerMgr* manager, tr_peer_socket&& socket)
 
     auto const lock = manager->unique_lock();
 
-    if (manager->blocklists_.contains(socket.address()))
+    if (manager->is_blocklisted(socket.address()))
     {
         tr_logAddTrace(fmt::format("Banned IP address '{}' tried to connect to us", socket.display_name()));
         socket.close();
     }
-    else if (manager->incoming_handshakes.count(socket.socket_address()) != 0U)
+    else if (manager->has_incoming_handshake(socket.socket_address()))
     {
         socket.close();
     }
@@ -1422,7 +1453,7 @@ void tr_peerMgrAddIncoming(tr_peerMgr* manager, tr_peer_socket&& socket)
     {
         auto const socket_address = socket.socket_address();
         auto* const session = manager->session;
-        manager->incoming_handshakes.try_emplace(
+        manager->start_incoming_handshake(
             socket_address,
             &manager->handshake_mediator_,
             tr_peerIo::new_incoming(session, &session->top_bandwidth_, std::move(socket)),
@@ -1440,7 +1471,7 @@ size_t tr_peerMgrAddPex(tr_torrent* tor, tr_peer_from from, tr_pex const* pex, s
     for (auto const* const end = pex + n_pex; pex != end; ++pex)
     {
         if (pex->is_valid_for_peers() && /* safeguard against corrupt data */
-            !s->manager->blocklists_.contains(pex->socket_address.address()) && from != TR_PEER_FROM_INCOMING &&
+            !s->manager->is_blocklisted(pex->socket_address.address()) && from != TR_PEER_FROM_INCOMING &&
             (from != TR_PEER_FROM_PEX || (pex->flags & ADDED_F_CONNECTABLE) != 0))
         {
             // we store this peer since it is supposedly connectable (socket address should be the peer's listening address)
@@ -2327,30 +2358,11 @@ void tr_peerMgr::reconnect_pulse()
 
 // --- Bandwidth Allocation
 
-namespace
-{
-namespace bandwidth_helpers
-{
-void pumpAllPeers(tr_peerMgr* mgr)
-{
-    for (auto* const tor : mgr->torrents_)
-    {
-        for (auto* const peer : tor->swarm->peers)
-        {
-            peer->pulse();
-        }
-    }
-}
-} // namespace bandwidth_helpers
-} // namespace
-
 void tr_peerMgr::bandwidth_pulse()
 {
-    using namespace bandwidth_helpers;
-
     auto const lock = unique_lock();
 
-    pumpAllPeers(this);
+    pump_all_peers();
 
     // allocate bandwidth to the peers
     static auto constexpr Msec = std::chrono::duration_cast<std::chrono::milliseconds>(BandwidthTimerPeriod).count();
