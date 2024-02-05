@@ -2116,7 +2116,7 @@ tr_session::tr_session(std::string_view config_dir, tr_variant const& settings_d
     , timer_maker_{ std::make_unique<libtransmission::EvTimerMaker>(event_base()) }
     , settings_{ settings_dict }
     , session_id_{ tr_time }
-    , peer_mgr_{ tr_peerMgrNew(this), &tr_peerMgrFree }
+    , peer_mgr_{ tr_peerMgrNew(*this), &tr_peerMgrFree }
     , rpc_server_{ std::make_unique<tr_rpc_server>(this, settings_dict) }
     , now_timer_{ timer_maker_->create([this]() { on_now_timer(); }) }
     , queue_timer_{ timer_maker_->create([this]() { on_queue_timer(); }) }

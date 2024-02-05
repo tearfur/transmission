@@ -1100,12 +1100,12 @@ public:
         max_size_vector<std::pair<tr_torrent_id_t, tr_socket_address>, OutboundCandidateListCapacity>;
 
     tr_peerMgr(
-        tr_session* session_in,
+        tr_session& session_in,
         libtransmission::TimerMaker& timer_maker,
         tr_torrents& torrents,
         libtransmission::Blocklists& blocklist)
         : session{ session_in }
-        , handshake_mediator_{ *session, timer_maker, torrents }
+        , handshake_mediator_{ session, timer_maker, torrents }
         , torrents_{ torrents }
         , blocklists_{ blocklist }
         , bandwidth_timer_{ timer_maker.create([this]() { bandwidth_pulse(); }) }
@@ -1125,7 +1125,7 @@ public:
 
     [[nodiscard]] auto unique_lock() const
     {
-        return session->unique_lock();
+        return session.unique_lock();
     }
 
     ~tr_peerMgr()
@@ -1166,7 +1166,7 @@ public:
         return blocklists_.contains(addr);
     }
 
-    tr_session* const session;
+    tr_session& session;
 
     HandshakeMediator handshake_mediator_;
 
@@ -1242,9 +1242,9 @@ tr_peer::~tr_peer()
 
 // ---
 
-tr_peerMgr* tr_peerMgrNew(tr_session* session)
+tr_peerMgr* tr_peerMgrNew(tr_session& session)
 {
-    return new tr_peerMgr{ session, session->timerMaker(), session->torrents(), session->blocklist() };
+    return new tr_peerMgr{ session, session.timerMaker(), session.torrents(), session.blocklist() };
 }
 
 void tr_peerMgrFree(tr_peerMgr* manager)
@@ -1452,12 +1452,12 @@ void tr_peerMgrAddIncoming(tr_peerMgr* manager, tr_peer_socket&& socket)
     else // we don't have a connection to them yet...
     {
         auto const socket_address = socket.socket_address();
-        auto* const session = manager->session;
+        auto& session = manager->session;
         manager->start_incoming_handshake(
             socket_address,
             &manager->handshake_mediator_,
-            tr_peerIo::new_incoming(session, &session->top_bandwidth_, std::move(socket)),
-            session->encryptionMode(),
+            tr_peerIo::new_incoming(&session, &session.top_bandwidth_, std::move(socket)),
+            session.encryptionMode(),
             [manager](tr_handshake::Result const& result) { return on_handshake_done(manager, result); });
     }
 }
@@ -2019,7 +2019,7 @@ void rechokeUploads(tr_swarm* s, uint64_t const now)
     auto const peer_count = std::size(peers);
     auto choked = std::vector<ChokeData>{};
     choked.reserve(peer_count);
-    auto const* const session = s->manager->session;
+    auto const& session = s->manager->session;
     bool const choke_all = !s->tor->client_can_upload();
     bool const is_maxed_out = s->tor->bandwidth().is_maxed_out(TR_UP, now);
 
@@ -2082,7 +2082,7 @@ void rechokeUploads(tr_swarm* s, uint64_t const now)
 
     for (auto& item : choked)
     {
-        if (unchoked_interested >= session->uploadSlotsPerTorrent())
+        if (unchoked_interested >= session.uploadSlotsPerTorrent())
         {
             break;
         }
@@ -2350,7 +2350,7 @@ void tr_peerMgr::reconnect_pulse()
     }
 
     // if we're over the per-session peer limits, cull some peers
-    enforceSessionPeerLimit(session->peerLimit(), torrents_);
+    enforceSessionPeerLimit(session.peerLimit(), torrents_);
 
     // try to make new peer connections
     make_new_peer_connections();
@@ -2366,7 +2366,7 @@ void tr_peerMgr::bandwidth_pulse()
 
     // allocate bandwidth to the peers
     static auto constexpr Msec = std::chrono::duration_cast<std::chrono::milliseconds>(BandwidthTimerPeriod).count();
-    session->top_bandwidth_.allocate(Msec);
+    session.top_bandwidth_.allocate(Msec);
 
     // torrent upkeep
     for (auto* const tor : torrents_)
@@ -2589,10 +2589,10 @@ void initiate_connection(tr_peerMgr* mgr, tr_swarm* s, tr_peer_info& peer_info)
     using namespace handshake_helpers;
 
     auto const now = tr_time();
-    auto const utp = mgr->session->allowsUTP() && peer_info.supports_utp().value_or(true);
-    auto* const session = mgr->session;
+    auto const utp = mgr->session.allowsUTP() && peer_info.supports_utp().value_or(true);
+    auto& session = mgr->session;
 
-    if (tr_peer_socket::limit_reached(session->peerLimit()) || (!utp && !session->allowsTCP()))
+    if (tr_peer_socket::limit_reached(session.peerLimit()) || (!utp && !session.allowsTCP()))
     {
         return;
     }
@@ -2602,8 +2602,8 @@ void initiate_connection(tr_peerMgr* mgr, tr_swarm* s, tr_peer_info& peer_info)
         fmt::format("Starting an OUTGOING {} connection with {}", utp ? " µTP" : "TCP", peer_info.display_name()));
 
     auto peer_io = tr_peerIo::new_outgoing(
-        session,
-        &session->top_bandwidth_,
+        &session,
+        &session.top_bandwidth_,
         peer_info.listen_socket_address(),
         s->tor->info_hash(),
         s->tor->is_seed(),
@@ -2620,7 +2620,7 @@ void initiate_connection(tr_peerMgr* mgr, tr_swarm* s, tr_peer_info& peer_info)
         peer_info.start_outgoing_handshake(
             &mgr->handshake_mediator_,
             peer_io,
-            session->encryptionMode(),
+            session.encryptionMode(),
             [mgr](tr_handshake::Result const& result) { return on_handshake_done(mgr, result); });
     }
 
@@ -2639,7 +2639,7 @@ void tr_peerMgr::make_new_peer_connections()
     auto& candidates = outbound_candidates_;
     if (std::empty(candidates))
     {
-        get_peer_candidates(session->peerLimit(), torrents_, candidates);
+        get_peer_candidates(session.peerLimit(), torrents_, candidates);
     }
 
     // initiate connections to the last N candidates

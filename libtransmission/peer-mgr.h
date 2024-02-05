@@ -529,7 +529,7 @@ struct tr_pex
     uint8_t flags = 0;
 };
 
-[[nodiscard]] tr_peerMgr* tr_peerMgrNew(tr_session* session);
+[[nodiscard]] tr_peerMgr* tr_peerMgrNew(tr_session& session);
 
 void tr_peerMgrFree(tr_peerMgr* manager);
 
