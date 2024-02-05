@@ -529,11 +529,6 @@ struct tr_pex
     uint8_t flags = 0;
 };
 
-constexpr bool tr_isPex(tr_pex const* pex)
-{
-    return pex != nullptr && pex->socket_address.is_valid();
-}
-
 [[nodiscard]] tr_peerMgr* tr_peerMgrNew(tr_session* session);
 
 void tr_peerMgrFree(tr_peerMgr* manager);
