@@ -82,7 +82,7 @@ void utp_on_accept(tr_session* const session, UTPSocket* const utp_sock)
     auto* const from = reinterpret_cast<sockaddr*>(&from_storage);
     socklen_t fromlen = sizeof(from_storage);
 
-    if (!session->allowsUTP() || tr_peer_socket::limit_reached(session))
+    if (!session->allowsUTP() || tr_peer_socket::limit_reached(session->peerLimit()))
     {
         utp_close(utp_sock);
         return;

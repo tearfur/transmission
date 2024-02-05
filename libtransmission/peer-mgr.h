@@ -38,7 +38,7 @@ struct tr_session;
 struct tr_torrent;
 
 /* added_f's bitwise-or'ed flags */
-enum
+enum : uint8_t
 {
     /* true if the peer supports encryption */
     ADDED_F_ENCRYPTION_FLAG = 1,
@@ -87,8 +87,8 @@ public:
     {
         if (!std::empty(listen_socket_address_.port()))
         {
-            [[maybe_unused]] auto const n_prev = n_known_connectable--;
-            TR_ASSERT(n_prev > 0U);
+            TR_ASSERT(n_known_connectable > 0U);
+            --n_known_connectable;
         }
     }
 
@@ -217,13 +217,13 @@ public:
         return is_connected_;
     }
 
-    [[nodiscard]] auto has_handshake() const noexcept
+    [[nodiscard]] auto has_outgoing_handshake() const noexcept
     {
         return static_cast<bool>(outgoing_handshake_);
     }
 
     template<typename... Args>
-    void start_handshake(Args&&... args)
+    void start_outgoing_handshake(Args&&... args)
     {
         TR_ASSERT(!outgoing_handshake_);
         if (!outgoing_handshake_)
@@ -232,14 +232,14 @@ public:
         }
     }
 
-    void destroy_handshake() noexcept
+    void end_outgoing_handshake() noexcept
     {
         outgoing_handshake_.reset();
     }
 
     [[nodiscard]] auto is_in_use() const noexcept
     {
-        return is_connected() || has_handshake();
+        return is_connected() || has_outgoing_handshake();
     }
 
     // ---
@@ -311,7 +311,7 @@ public:
 
     [[nodiscard]] auto is_inactive(time_t const now) const noexcept
     {
-        return !is_in_use() && now - connection_changed_at_ >= UselessThresSecs;
+        return !is_in_use() && now - connection_changed_at_ >= InactiveSecs;
     }
 
     // ---
@@ -404,7 +404,7 @@ private:
         // otherwise, the interval depends on how many times we've tried
         // and failed to connect to the peer. Penalize peers that were
         // unreachable the last time we tried
-        auto step = this->num_consecutive_fails_;
+        auto step = num_consecutive_fails_;
         if (unreachable)
         {
             step += 2;
@@ -431,7 +431,9 @@ private:
 
     // the minimum we'll wait before attempting to reconnect to a peer
     static auto constexpr MinimumReconnectIntervalSecs = time_t{ 5U };
-    static auto constexpr UselessThresSecs = time_t{ 24 * 60 * 60 };
+
+    // the time to wait before we consider this peer inactive
+    static auto constexpr InactiveSecs = time_t{ 24 * 60 * 60 };
 
     static auto inline n_known_connectable = size_t{};
 
@@ -548,7 +550,7 @@ void tr_peerMgrAddIncoming(tr_peerMgr* manager, tr_peer_socket&& socket);
 
 size_t tr_peerMgrAddPex(tr_torrent* tor, tr_peer_from from, tr_pex const* pex, size_t n_pex);
 
-enum
+enum : uint8_t
 {
     TR_PEERS_CONNECTED,
     TR_PEERS_INTERESTING

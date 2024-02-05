@@ -229,9 +229,9 @@ tr_peer_socket tr_netOpenPeerSocket(tr_session* session, tr_socket_address const
     auto const& [addr, port] = socket_address;
 
     TR_ASSERT(addr.is_valid());
-    TR_ASSERT(!tr_peer_socket::limit_reached(session));
+    TR_ASSERT(!tr_peer_socket::limit_reached(session->peerLimit()));
 
-    if (tr_peer_socket::limit_reached(session) || !session->allowsTCP() || !socket_address.is_valid_for_peers())
+    if (tr_peer_socket::limit_reached(session->peerLimit()) || !session->allowsTCP() || !socket_address.is_valid_for_peers())
     {
         return {};
     }
@@ -413,7 +413,7 @@ std::optional<std::pair<tr_socket_address, tr_socket_t>> tr_netAccept(tr_session
     // make the socket unblocking,
     // and confirm we don't have too many peers
     auto const addrport = tr_socket_address::from_sockaddr(reinterpret_cast<struct sockaddr*>(&sock));
-    if (!addrport || evutil_make_socket_nonblocking(sockfd) == -1 || tr_peer_socket::limit_reached(session))
+    if (!addrport || evutil_make_socket_nonblocking(sockfd) == -1 || tr_peer_socket::limit_reached(session->peerLimit()))
     {
         tr_net_close_socket(sockfd);
         return {};

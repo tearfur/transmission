@@ -232,7 +232,7 @@ void tr_peer_info::merge(tr_peer_info& that) noexcept
     {
         if (outgoing_handshake_)
         {
-            that.destroy_handshake();
+            that.end_outgoing_handshake();
         }
         else
         {
@@ -674,7 +674,7 @@ private:
         remove_all_peers();
         for (auto& [sockaddr, peer_info] : connectable_pool)
         {
-            peer_info.destroy_handshake();
+            peer_info.end_outgoing_handshake();
         }
     }
 
@@ -1136,7 +1136,7 @@ public:
         incoming_handshakes.clear();
     }
 
-    void rechokeSoon() noexcept
+    void rechoke_soon() noexcept
     {
         rechoke_timer_->set_interval(100ms);
     }
@@ -1169,15 +1169,15 @@ private:
 
     void on_blocklists_changed() const
     {
-        /* we cache whether or not a peer is blocklisted...
-           since the blocklist has changed, erase that cached value */
+        // we cache whether or not a peer is blocklisted...
+        // since the blocklist has changed, erase that cached value
         for (auto* const tor : torrents_)
         {
             for (auto& pool : { std::ref(tor->swarm->connectable_pool), std::ref(tor->swarm->incoming_pool) })
             {
-                for (auto& [socket_address, atom] : pool.get())
+                for (auto& [socket_address, info] : pool.get())
                 {
-                    atom.set_blocklisted_dirty();
+                    info.set_blocklisted_dirty();
                 }
             }
         }
@@ -1326,7 +1326,7 @@ void create_bit_torrent_peer(tr_torrent* tor, std::shared_ptr<tr_peerIo> io, tr_
     }
     else if (info != nullptr)
     {
-        info->destroy_handshake();
+        info->end_outgoing_handshake();
     }
 
     if (!result.is_connected || swarm == nullptr || !swarm->is_running)
@@ -1433,11 +1433,11 @@ void tr_peerMgrAddIncoming(tr_peerMgr* manager, tr_peer_socket&& socket)
 
 size_t tr_peerMgrAddPex(tr_torrent* tor, tr_peer_from from, tr_pex const* pex, size_t n_pex)
 {
-    size_t n_used = 0;
+    auto n_used = size_t{};
     tr_swarm* s = tor->swarm;
     auto const lock = s->manager->unique_lock();
 
-    for (tr_pex const* const end = pex + n_pex; pex != end; ++pex)
+    for (auto const* const end = pex + n_pex; pex != end; ++pex)
     {
         if (tr_isPex(pex) && /* safeguard against corrupt data */
             !s->manager->blocklists_.contains(pex->socket_address.address()) && pex->is_valid_for_peers() &&
@@ -1459,7 +1459,7 @@ std::vector<tr_pex> tr_pex::from_compact_ipv4(
     uint8_t const* added_f,
     size_t added_f_len)
 {
-    size_t const n = compact_len / tr_socket_address::CompactSockAddrBytes[TR_AF_INET];
+    auto const n = compact_len / tr_socket_address::CompactSockAddrBytes[TR_AF_INET];
     auto const* walk = static_cast<std::byte const*>(compact);
     auto pex = std::vector<tr_pex>(n);
 
@@ -1482,7 +1482,7 @@ std::vector<tr_pex> tr_pex::from_compact_ipv6(
     uint8_t const* added_f,
     size_t added_f_len)
 {
-    size_t const n = compact_len / tr_socket_address::CompactSockAddrBytes[TR_AF_INET6];
+    auto const n = compact_len / tr_socket_address::CompactSockAddrBytes[TR_AF_INET6];
     auto const* walk = static_cast<std::byte const*>(compact);
     auto pex = std::vector<tr_pex>(n);
 
@@ -1602,7 +1602,7 @@ void tr_swarm::on_torrent_started()
 {
     auto const lock = unique_lock();
     is_running = true;
-    manager->rechokeSoon();
+    manager->rechoke_soon();
 }
 
 void tr_swarm::on_torrent_stopped()
@@ -2056,7 +2056,7 @@ void rechokeUploads(tr_swarm* s, uint64_t const now)
             break;
         }
 
-        item.is_choked_ = is_maxed_out ? item.was_choked_ : false;
+        item.is_choked_ = is_maxed_out && item.was_choked_;
 
         ++checked_choke_count;
 
@@ -2580,7 +2580,7 @@ void initiate_connection(tr_peerMgr* mgr, tr_swarm* s, tr_peer_info& peer_info)
     auto const utp = mgr->session->allowsUTP() && peer_info.supports_utp().value_or(true);
     auto* const session = mgr->session;
 
-    if (tr_peer_socket::limit_reached(session) || (!utp && !session->allowsTCP()))
+    if (tr_peer_socket::limit_reached(session->peerLimit()) || (!utp && !session->allowsTCP()))
     {
         return;
     }
@@ -2605,7 +2605,7 @@ void initiate_connection(tr_peerMgr* mgr, tr_swarm* s, tr_peer_info& peer_info)
     }
     else
     {
-        peer_info.start_handshake(
+        peer_info.start_outgoing_handshake(
             &mgr->handshake_mediator_,
             peer_io,
             session->encryptionMode(),

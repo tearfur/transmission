@@ -126,7 +126,7 @@ public:
         struct UTPSocket* utp;
     } handle = {};
 
-    [[nodiscard]] static bool limit_reached(tr_session const* session) noexcept;
+    [[nodiscard]] static bool limit_reached(size_t limit) noexcept;
 
 private:
     enum class Type
