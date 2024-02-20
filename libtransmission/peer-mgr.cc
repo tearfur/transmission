@@ -2588,7 +2588,6 @@ void initiate_connection(tr_peerMgr* mgr, tr_swarm* s, tr_peer_info& peer_info)
 {
     using namespace handshake_helpers;
 
-    auto const now = tr_time();
     auto const utp = mgr->session.allowsUTP() && peer_info.supports_utp().value_or(true);
     auto& session = mgr->session;
 
@@ -2624,7 +2623,7 @@ void initiate_connection(tr_peerMgr* mgr, tr_swarm* s, tr_peer_info& peer_info)
             [mgr](tr_handshake::Result const& result) { return on_handshake_done(mgr, result); });
     }
 
-    peer_info.set_connection_attempt_time(now);
+    peer_info.set_connection_attempt_time(tr_time());
 }
 } // namespace connect_helpers
 } // namespace
