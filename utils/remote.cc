@@ -212,7 +212,7 @@ enum
 
 // --- Command-Line Arguments
 
-auto constexpr Options = std::array<tr_option, 98>{
+auto constexpr Options = std::array<tr_option, 100>{
     { { 'a', "add", "Add torrent files by filename or URL", "a", false, nullptr },
       { 970, "alt-speed", "Use the alternate Limits", "as", false, nullptr },
       { 971, "no-alt-speed", "Don't use the alternate Limits", "AS", false, nullptr },
@@ -316,6 +316,8 @@ auto constexpr Options = std::array<tr_option, 98>{
       { 991, "no-start-paused", "Start added torrents unpaused", nullptr, false, nullptr },
       { 992, "trash-torrent", "Delete torrents after adding", nullptr, false, nullptr },
       { 993, "no-trash-torrent", "Do not delete torrents after adding", nullptr, false, nullptr },
+      { 994, "sequential-download", "Download the torrent sequentially", "seq", false, nullptr },
+      { 995, "no-sequential-download", "Download the torrent sequentially", "SEQ", false, nullptr },
       { 984, "honor-session", "Make the current torrent(s) honor the session limits", "hl", false, nullptr },
       { 985, "no-honor-session", "Make the current torrent(s) not honor the session limits", "HL", false, nullptr },
       { 'u',
@@ -465,6 +467,8 @@ enum
     case 902: /* file priority-low */
     case 730: /* set bandwidth group */
     case 731: /* reset bandwidth group */
+    case 994: /* sequential-download */
+    case 995: /* no-sequential-download */
         return MODE_TORRENT_SET | MODE_TORRENT_ADD;
 
     case 961: /* find */
