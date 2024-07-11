@@ -32,6 +32,7 @@ public:
 
         virtual void notify_read() = 0;
         virtual void notify_write() = 0;
+        virtual void notify_bandwidth_overhead(tr_direction dir, size_t n_bytes) = 0;
 
         virtual event_base* event_base() = 0;
 

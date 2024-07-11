@@ -241,8 +241,10 @@ public:
 
         if (n_read > 0)
         {
+            auto const ret = static_cast<size_t>(n_read);
+            mediator_->notify_bandwidth_overhead(TR_DOWN, guess_packet_overhead(ret));
             buf.commit_space(n_read);
-            return static_cast<size_t>(n_read);
+            return static_cast<size_t>(ret);
         }
 
         // When a stream socket peer has performed an orderly shutdown,
@@ -273,8 +275,10 @@ public:
 
         if (auto const n_sent = ::send(fd_, reinterpret_cast<char const*>(buf.data()), n_bytes, 0); n_sent >= 0U)
         {
+            auto const ret = static_cast<size_t>(n_sent);
+            mediator_->notify_bandwidth_overhead(TR_UP, guess_packet_overhead(ret));
             buf.drain(n_sent);
-            return static_cast<size_t>(n_sent);
+            return ret;
         }
 
         if (error != nullptr)
@@ -367,6 +371,28 @@ private:
         tcp->pending_events_ &= ~EV_WRITE;
 
         tcp->mediator_->notify_write();
+    }
+
+    // ---
+
+    [[nodiscard]] constexpr size_t guess_packet_overhead(size_t n_bytes) const noexcept
+    {
+        // https://web.archive.org/web/20140912230020/http://sd.wareonearth.com:80/~phil/net/overhead/
+        // TCP over Ethernet:
+        // Assuming no header compression (e.g. not PPP)
+        // Add 20 IPv4 header or 40 IPv6 header (no options)
+        // Add 20 TCP header
+        // Add 12 bytes optional TCP timestamps
+        // Max TCP Payload data rates over ethernet are thus:
+        // (1500-40)/ (38+1500) = 94.9285 %  IPv4, minimal headers
+        // (1500-52)/ (38+1500) = 94.1482 %  IPv4, TCP timestamps
+        // (1500-52)/ (42+1500) = 93.9040 %  802.1q, IPv4, TCP timestamps
+        // (1500-60)/ (38+1500) = 93.6281 %  IPv6, minimal headers
+        // (1500-72)/ (38+1500) = 92.8479 %  IPv6, TCP timestamps
+        // (1500-72)/ (42+1500) = 92.6070 %  802.1q, IPv6, TCP timestamps
+
+        // So, let's guess around 7% overhead
+        return n_bytes / 14U;
     }
 
     short pending_events_ = {};
