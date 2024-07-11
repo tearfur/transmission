@@ -412,7 +412,7 @@ size_t tr_peerIo::try_read(size_t max)
 
     auto& buf = inbuf_;
     auto error = tr_error{};
-    auto const n_read = socket_.try_read(buf, max, std::empty(buf), &error);
+    auto const n_read = socket_.try_read(buf, max, &error);
     set_enabled(Dir, !error || can_retry_from_error(error.code()));
 
     if (error)

@@ -10,6 +10,7 @@
 #endif
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -25,6 +26,12 @@ class tr_peer_transport
 public:
     using InBuf = libtransmission::BufferWriter<std::byte>;
     using OutBuf = libtransmission::BufferReader<std::byte>;
+
+    enum Type : uint8_t
+    {
+        UTP,
+        TCP
+    };
 
     struct Mediator
     {
@@ -71,6 +78,8 @@ public:
     {
         return socket_address_.display_name();
     }
+
+    [[nodiscard]] virtual Type type() const noexcept = 0;
 
     virtual size_t recv(InBuf& buf, size_t n_bytes, tr_error* error = nullptr) = 0;
     virtual size_t send(OutBuf& buf, size_t n_bytes, tr_error* error = nullptr) = 0;

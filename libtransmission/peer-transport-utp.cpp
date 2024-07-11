@@ -14,6 +14,11 @@ class tr_peer_utp_impl final : public tr_peer_utp
     {
     }
 
+    [[nodiscard]] Type type() const noexcept override
+    {
+        return UTP;
+    }
+
     size_t recv(tr_peer_transport::InBuf& buf, size_t n_bytes, tr_error* error = nullptr) override
     {
         return 0;
