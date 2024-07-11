@@ -225,6 +225,11 @@ public:
         return tr_peer_transport::is_valid() && fd_ != TR_BAD_SOCKET;
     }
 
+    [[nodiscard]] Type type() const noexcept override
+    {
+        return TCP;
+    }
+
     // ---
 
     size_t recv(InBuf& buf, size_t n_bytes, tr_error* error = nullptr) override

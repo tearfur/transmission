@@ -15,6 +15,7 @@
 #include <utility> // for std::make_pair()
 
 #include "libtransmission/net.h"
+#include "libtransmission/peer-transport.h"
 #include "libtransmission/tr-buffer.h"
 
 struct UTPSocket;
@@ -23,28 +24,24 @@ struct tr_session;
 class tr_peer_socket
 {
 public:
-    using InBuf = libtransmission::BufferWriter<std::byte>;
-    using OutBuf = libtransmission::BufferReader<std::byte>;
+    using InBuf = tr_peer_transport::InBuf;
+    using OutBuf = tr_peer_transport::OutBuf;
 
     tr_peer_socket() = default;
-    tr_peer_socket(tr_session const* session, tr_socket_address const& socket_address, tr_socket_t sock);
-    tr_peer_socket(tr_socket_address const& socket_address, struct UTPSocket* sock);
+    tr_peer_socket(
+        tr_socket_address socket_address,
+        bool client_is_seed,
+        std::unique_ptr<tr_peer_transport::Mediator> mediator);
+    tr_peer_socket(
+        tr_socket_address const& socket_address,
+        struct UTPSocket* sock,
+        std::unique_ptr<tr_peer_transport::Mediator> mediator);
     tr_peer_socket(tr_peer_socket&& s) noexcept
     {
         *this = std::move(s);
     }
     tr_peer_socket(tr_peer_socket const&) = delete;
-    tr_peer_socket& operator=(tr_peer_socket&& s) noexcept
-    {
-        close();
-        handle = s.handle;
-        socket_address_ = s.socket_address_;
-        type_ = s.type_;
-        // invalidate s.type_, s.handle so s.close() won't break anything
-        s.type_ = Type::None;
-        s.handle = {};
-        return *this;
-    }
+    tr_peer_socket& operator=(tr_peer_socket&& s) noexcept = default;
     tr_peer_socket& operator=(tr_peer_socket const&) = delete;
     ~tr_peer_socket()
     {
@@ -52,93 +49,48 @@ public:
     }
     void close();
 
-    size_t try_read(InBuf& buf, size_t max, bool buf_is_empty, tr_error* error) const;
+    size_t try_read(InBuf& buf, size_t max, tr_error* error) const;
     size_t try_write(OutBuf& buf, size_t max, tr_error* error) const;
 
-    [[nodiscard]] constexpr auto const& socket_address() const noexcept
+    [[nodiscard]] TR_CONSTEXPR23 auto socket_address() const noexcept
     {
-        return socket_address_;
+        return transport_ ? transport_->socket_address() : tr_socket_address{};
     }
 
-    [[nodiscard]] constexpr auto const& address() const noexcept
+    [[nodiscard]] TR_CONSTEXPR23 auto address() const noexcept
     {
-        return socket_address_.address();
+        return transport_ ? transport_->address() : tr_address{};
     }
 
-    [[nodiscard]] constexpr auto port() const noexcept
+    [[nodiscard]] TR_CONSTEXPR23 auto port() const noexcept
     {
-        return socket_address_.port();
+        return transport_ ? transport_->port() : tr_port{};
     }
 
     [[nodiscard]] std::string display_name() const
     {
-        return socket_address_.display_name();
+        return transport_ ? transport_->display_name() : std::string{};
     }
 
     [[nodiscard]] constexpr auto is_utp() const noexcept
     {
-        return type_ == Type::UTP;
+        return transport_ && transport_->type() == tr_peer_transport::UTP;
     }
 
     [[nodiscard]] constexpr auto is_tcp() const noexcept
     {
-        return type_ == Type::TCP;
+        return transport_ && transport_->type() == tr_peer_transport::TCP;
     }
 
-    [[nodiscard]] constexpr auto is_valid() const noexcept
+    [[nodiscard]] auto is_valid() const noexcept
     {
-#ifdef WITH_UTP
-        return is_tcp() || is_utp();
-#else
-        return is_tcp();
-#endif
+        return transport_ && transport_->is_valid();
     }
-
-    [[nodiscard]] constexpr size_t guess_packet_overhead(size_t n_bytes) const noexcept
-    {
-        if (is_tcp())
-        {
-            // https://web.archive.org/web/20140912230020/http://sd.wareonearth.com:80/~phil/net/overhead/
-            // TCP over Ethernet:
-            // Assuming no header compression (e.g. not PPP)
-            // Add 20 IPv4 header or 40 IPv6 header (no options)
-            // Add 20 TCP header
-            // Add 12 bytes optional TCP timestamps
-            // Max TCP Payload data rates over ethernet are thus:
-            // (1500-40)/ (38+1500) = 94.9285 %  IPv4, minimal headers
-            // (1500-52)/ (38+1500) = 94.1482 %  IPv4, TCP timestamps
-            // (1500-52)/ (42+1500) = 93.9040 %  802.1q, IPv4, TCP timestamps
-            // (1500-60)/ (38+1500) = 93.6281 %  IPv6, minimal headers
-            // (1500-72)/ (38+1500) = 92.8479 %  IPv6, TCP timestamps
-            // (1500-72)/ (42+1500) = 92.6070 %  802.1q, IPv6, TCP timestamps
-
-            // So, let's guess around 7% overhead
-            return n_bytes / 14U;
-        }
-
-        // We only guess for TCP; uTP tracks its overhead via UTP_ON_OVERHEAD_STATISTICS
-        return {};
-    }
-
-    union
-    {
-        tr_socket_t tcp;
-        struct UTPSocket* utp;
-    } handle = {};
 
     [[nodiscard]] static bool limit_reached(tr_session const* session) noexcept;
 
 private:
-    enum class Type
-    {
-        None,
-        TCP,
-        UTP
-    };
-
-    tr_socket_address socket_address_;
-
-    enum Type type_ = Type::None;
+    std::unique_ptr<tr_peer_transport> transport_;
 
     static inline std::atomic<size_t> n_open_sockets_ = {};
 };

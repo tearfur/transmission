@@ -94,6 +94,9 @@ target_sources(${TR_NAME}
         peer-msgs.h
         peer-socket.cc
         peer-socket.h
+        peer-transport-tcp.cc
+        peer-transport-utp.cpp
+        peer-transport.h
         platform.cc
         platform.h
         port-forwarding-natpmp.cc

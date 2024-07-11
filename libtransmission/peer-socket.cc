@@ -23,22 +23,12 @@
 #define tr_logAddDebugIo(io, msg) tr_logAddDebug(msg, (io)->display_name())
 #define tr_logAddTraceIo(io, msg) tr_logAddTrace(msg, (io)->display_name())
 
-tr_peer_socket::tr_peer_socket(tr_session const* session, tr_socket_address const& socket_address, tr_socket_t sock)
-    : handle{ sock }
-    , socket_address_{ socket_address }
-    , type_{ Type::TCP }
+tr_peer_socket::tr_peer_socket(
+    tr_socket_address socket_address,
+    bool client_is_seed,
+    std::unique_ptr<tr_peer_transport::Mediator> mediator)
+    : transport_{ tr_peer_tcp::create(std::move(socket_address), client_is_seed, std::move(mediator)) }
 {
-    TR_ASSERT(sock != TR_BAD_SOCKET);
-
-    ++n_open_sockets_;
-    session->setSocketTOS(sock, address().type);
-
-    if (auto const& algo = session->peerCongestionAlgorithm(); !std::empty(algo))
-    {
-        tr_netSetCongestionControl(sock, algo.c_str());
-    }
-
-    tr_logAddTraceIo(this, fmt::format("socket (tcp) is {}", handle.tcp));
 }
 
 tr_peer_socket::tr_peer_socket(tr_socket_address const& socket_address, struct UTPSocket* const sock)
@@ -55,22 +45,8 @@ tr_peer_socket::tr_peer_socket(tr_socket_address const& socket_address, struct U
 
 void tr_peer_socket::close()
 {
-    if (is_tcp() && (handle.tcp != TR_BAD_SOCKET))
-    {
-        --n_open_sockets_;
-        tr_net_close_socket(handle.tcp);
-    }
-#ifdef WITH_UTP
-    else if (is_utp())
-    {
-        --n_open_sockets_;
-        utp_set_userdata(handle.utp, nullptr);
-        utp_close(handle.utp);
-    }
-#endif
-
-    type_ = Type::None;
-    handle = {};
+    --n_open_sockets_;
+    transport_.reset();
 }
 
 size_t tr_peer_socket::try_write(OutBuf& buf, size_t max, tr_error* error) const
@@ -80,53 +56,17 @@ size_t tr_peer_socket::try_write(OutBuf& buf, size_t max, tr_error* error) const
         return {};
     }
 
-    if (is_tcp())
-    {
-        return buf.to_socket(handle.tcp, max, error);
-    }
-
-#ifdef WITH_UTP
-    if (is_utp())
-    {
-        errno = 0;
-        // NB: utp_write() does not modify its 2nd arg, but a wart in
-        // libutp's public API requires it to be non-const anyway :shrug:
-        auto const n_written = utp_write(handle.utp, const_cast<std::byte*>(std::data(buf)), std::min(std::size(buf), max));
-        auto const error_code = errno;
-
-        if (n_written > 0)
-        {
-            buf.drain(n_written);
-            return static_cast<size_t>(n_written);
-        }
-
-        if (error != nullptr && n_written < 0 && error_code != 0)
-        {
-            error->set_from_errno(error_code);
-        }
-    }
-#endif
-
-    return {};
+    return transport_->send(buf, max, error);
 }
 
-size_t tr_peer_socket::try_read(InBuf& buf, size_t max, [[maybe_unused]] bool buf_is_empty, tr_error* error) const
+size_t tr_peer_socket::try_read(InBuf& buf, size_t max, tr_error* error) const
 {
     if (max == size_t{})
     {
         return {};
     }
 
-    if (is_tcp())
-    {
-        return buf.add_socket(handle.tcp, max, error);
-    }
-
-    // Unlike conventional BSD-style socket API, libutp pushes incoming data to the
-    // caller via a callback, instead of allowing the caller to pull data from
-    // its buffers. Therefore, reading data from a uTP socket is not handled here.
-
-    return {};
+    return transport_->recv(buf, max, error);
 }
 
 bool tr_peer_socket::limit_reached(tr_session const* const session) noexcept
