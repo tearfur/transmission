@@ -556,7 +556,7 @@ tr_resume::fields_t load_progress(tr_variant::Map const& map, tr_torrent* tor, t
                 for (tr_piece_index_t i = 1; time_checked > time_t{} && i <= n_pieces && i < n_ll; ++i)
                 {
                     auto const offset = (*ll)[i].value_if<int64_t>().value_or(0);
-                    time_checked = std::min(time_checked, static_cast<time_t>(offset != 0 ? base + offset : 0));
+                    time_checked = std::min(time_checked, offset != 0 ? static_cast<time_t>(base + offset) : time_t{});
                 }
             }
 
