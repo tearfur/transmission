@@ -5,6 +5,7 @@
 
 #include <array>
 #include <cerrno>
+#include <chrono>
 #include <cstdio> /* printf */
 #include <iostream>
 #include <iterator> /* std::back_inserter */
@@ -269,6 +270,7 @@ auto onFileAdded(tr_session* session, std::string_view dirname, std::string_view
 
 void printMessage(
     FILE* ostream,
+    std::chrono::time_point<std::chrono::system_clock> now,
     tr_log_level level,
     std::string_view name,
     std::string_view message,
@@ -289,7 +291,7 @@ void printMessage(
     if (ostream != nullptr)
     {
         auto timestr = std::array<char, 64>{};
-        tr_logGetTimeStr(std::data(timestr), std::size(timestr));
+        tr_logGetTimeStr(now, std::data(timestr), std::size(timestr));
         fmt::print(ostream, "[{:s}] {:s} {:s}\n", std::data(timestr), levelName(level), out.c_str());
     }
 
@@ -335,7 +337,7 @@ void pumpLogMessages(FILE* log_stream)
 
     for (tr_log_message const* l = list; l != nullptr; l = l->next)
     {
-        printMessage(log_stream, l->level, l->name, l->message, l->file, l->line);
+        printMessage(log_stream, l->when, l->level, l->name, l->message, l->file, l->line);
     }
 
     // two reasons to not flush stderr:
@@ -708,7 +710,7 @@ int tr_daemon::start([[maybe_unused]] bool foreground)
             _("Couldn't initialize daemon: {error} ({error_code})"),
             fmt::arg("error", tr_strerror(error_code)),
             fmt::arg("error_code", error_code));
-        printMessage(log_stream_, TR_LOG_ERROR, MyName, errmsg, __FILE__, __LINE__);
+        printMessage(log_stream_, std::chrono::system_clock::now(), TR_LOG_ERROR, MyName, errmsg, __FILE__, __LINE__);
         cleanup_signals(sig_ev);
         return 1;
     }
@@ -927,7 +929,7 @@ bool tr_daemon::init(int argc, char const* const argv[], bool* foreground, int* 
 void tr_daemon::handle_error(tr_error const& error) const
 {
     auto const errmsg = fmt::format("Couldn't daemonize: {:s} ({:d})", error.message(), error.code());
-    printMessage(log_stream_, TR_LOG_ERROR, MyName, errmsg, __FILE__, __LINE__);
+    printMessage(log_stream_, std::chrono::system_clock::now(), TR_LOG_ERROR, MyName, errmsg, __FILE__, __LINE__);
 }
 
 int tr_main(int argc, char* argv[])
