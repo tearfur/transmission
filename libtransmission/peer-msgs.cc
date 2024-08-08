@@ -449,6 +449,10 @@ public:
             set_client_interested(interested);
             protocol_send_interest(interested);
             update_active(TR_PEER_TO_CLIENT);
+
+            // make sure this is after we send the "interested" msg
+            update_desired_request_count();
+            maybe_send_block_requests();
         }
     }
 
@@ -579,7 +583,7 @@ private:
         desired_request_count_ = max_available_reqs();
     }
 
-    void update_block_requests();
+    void maybe_send_block_requests();
 
     void check_request_timeout(time_t now);
 
@@ -604,7 +608,7 @@ private:
         return next;
     }
 
-    void update_metadata_requests(time_t now) const;
+    void maybe_send_metadata_requests(time_t now) const;
     [[nodiscard]] size_t add_next_metadata_piece();
     [[nodiscard]] size_t add_next_block(time_t now_sec, uint64_t now_msec);
     [[nodiscard]] size_t fill_output_buffer(time_t now_sec, uint64_t now_msec);
@@ -1406,6 +1410,7 @@ ReadResult tr_peerMsgsImpl::process_peer_message(uint8_t id, MessageReader& payl
         }
 
         update_active(TR_PEER_TO_CLIENT);
+        update_desired_request_count(); // set desired request count to 0
         break;
 
     case BtPeerMsgs::Unchoke:
@@ -1413,6 +1418,7 @@ ReadResult tr_peerMsgsImpl::process_peer_message(uint8_t id, MessageReader& payl
         set_client_choked(false);
         update_active(TR_PEER_TO_CLIENT);
         update_desired_request_count();
+        maybe_send_block_requests();
         break;
 
     case BtPeerMsgs::Interested:
@@ -1443,6 +1449,10 @@ ReadResult tr_peerMsgsImpl::process_peer_message(uint8_t id, MessageReader& payl
             have_.set(ui32);
             peer_info->set_seed(is_seed());
             publish(tr_peer_event::GotHave(ui32));
+
+            // make sure this is after publishing event, so that the wishlist
+            // will have the latest info when choosing blocks to request
+            maybe_send_block_requests();
         }
 
         break;
@@ -1453,6 +1463,11 @@ ReadResult tr_peerMsgsImpl::process_peer_message(uint8_t id, MessageReader& payl
         have_.set_raw(reinterpret_cast<uint8_t const*>(std::data(payload)), std::size(payload));
         peer_info->set_seed(is_seed());
         publish(tr_peer_event::GotBitfield(&have_));
+
+        // make sure these are after publishing event, so that the wishlist
+        // will have the latest info when choosing blocks to request
+        update_desired_request_count();
+        maybe_send_block_requests();
         break;
 
     case BtPeerMsgs::Request:
@@ -1553,6 +1568,11 @@ ReadResult tr_peerMsgsImpl::process_peer_message(uint8_t id, MessageReader& payl
             have_.set_has_all();
             peer_info->set_seed();
             publish(tr_peer_event::GotHaveAll());
+
+            // make sure these are after publishing event, so that the wishlist
+            // will have the latest info when choosing blocks to request
+            update_desired_request_count();
+            maybe_send_block_requests();
         }
         else
         {
@@ -1588,6 +1608,10 @@ ReadResult tr_peerMsgsImpl::process_peer_message(uint8_t id, MessageReader& payl
 
             if (fext)
             {
+                // Make sure maybe_send_block_requests() is called before removing the request,
+                // so that it will choose a block other than the rejected block.
+                maybe_send_block_requests();
+
                 auto const block = tor_.piece_loc(r.index, r.offset).block;
                 active_requests.unset(block);
                 publish(tr_peer_event::GotRejected(tor_.block_info(), block));
@@ -1629,13 +1653,19 @@ ReadResult tr_peerMsgsImpl::read_piece_data(MessageReader& payload)
 
     if (loc.block_offset + len > block_size)
     {
-        logwarn(this, fmt::format("got unaligned piece {:d}:{:d}->{:d}", piece, offset, len));
+        logwarn(this, fmt::format("got unaligned block {:d} ({:d}:{:d}->{:d})", block, piece, offset, len));
         return { READ_ERR, len };
     }
 
     if (!active_requests.test(block))
     {
-        logwarn(this, fmt::format("got unrequested piece {:d}:{:d}->{:d}", piece, offset, len));
+        logwarn(this, fmt::format("got unrequested block {:d} ({:d}:{:d}->{:d})", block, piece, offset, len));
+        return { READ_ERR, len };
+    }
+
+    if (tor_.has_block(block))
+    {
+        logtrace(this, fmt::format("got completed block {:d} ({:d}:{:d}->{:d})", block, piece, offset, len));
         return { READ_ERR, len };
     }
 
@@ -1672,34 +1702,14 @@ ReadResult tr_peerMsgsImpl::read_piece_data(MessageReader& payload)
 // returns 0 on success, or an errno on failure
 int tr_peerMsgsImpl::client_got_block(std::unique_ptr<Cache::BlockData> block_data, tr_block_index_t const block)
 {
-    auto const n_expected = tor_.block_size(block);
-
-    if (!block_data)
+    if (auto const n_bytes = block_data ? std::size(*block_data) : 0U; n_bytes != tor_.block_size(block))
     {
-        logdbg(this, fmt::format("wrong block size: expected {:d}, got {:d}", n_expected, 0));
-        return EMSGSIZE;
-    }
-
-    if (std::size(*block_data) != tor_.block_size(block))
-    {
-        logdbg(this, fmt::format("wrong block size: expected {:d}, got {:d}", n_expected, std::size(*block_data)));
+        auto const n_expected = tor_.block_size(block);
+        logdbg(this, fmt::format("wrong block size: expected {:d}, got {:d}", n_expected, n_bytes));
         return EMSGSIZE;
     }
 
     logtrace(this, fmt::format("got block {:d}", block));
-
-    if (!active_requests.test(block))
-    {
-        logdbg(this, "we didn't ask for this message...");
-        return 0;
-    }
-
-    auto const loc = tor_.block_loc(block);
-    if (tor_.has_piece(loc.piece))
-    {
-        logtrace(this, "we did ask for this message, but the piece is already complete...");
-        return 0;
-    }
 
     // NB: if writeBlock() fails the torrent may be paused.
     // If this happens, this object will be destructed and must no longer be used.
@@ -1708,10 +1718,11 @@ int tr_peerMsgsImpl::client_got_block(std::unique_ptr<Cache::BlockData> block_da
         return err;
     }
 
-    blame.set(loc.piece);
+    blame.set(tor_.block_loc(block).piece);
     active_requests.unset(block);
     request_timeout_base_ = tr_time();
     publish(tr_peer_event::GotBlock(tor_.block_info(), block));
+    maybe_send_block_requests();
 
     return 0;
 }
@@ -1726,8 +1737,6 @@ void tr_peerMsgsImpl::did_write(tr_peerIo* /*io*/, size_t bytes_written, bool wa
     {
         msgs->publish(tr_peer_event::SentPieceData(bytes_written));
     }
-
-    msgs->pulse();
 }
 
 ReadState tr_peerMsgsImpl::can_read(tr_peerIo* io, void* vmsgs, size_t* piece)
@@ -1826,8 +1835,8 @@ void tr_peerMsgsImpl::pulse()
 
     check_request_timeout(now_sec);
     update_desired_request_count();
-    update_block_requests();
-    update_metadata_requests(now_sec);
+    maybe_send_block_requests();
+    maybe_send_metadata_requests(now_sec);
 
     for (;;)
     {
@@ -1838,7 +1847,7 @@ void tr_peerMsgsImpl::pulse()
     }
 }
 
-void tr_peerMsgsImpl::update_metadata_requests(time_t now) const
+void tr_peerMsgsImpl::maybe_send_metadata_requests(time_t now) const
 {
     if (!peer_supports_metadata_xfer_)
     {
@@ -1855,7 +1864,7 @@ void tr_peerMsgsImpl::update_metadata_requests(time_t now) const
     }
 }
 
-void tr_peerMsgsImpl::update_block_requests()
+void tr_peerMsgsImpl::maybe_send_block_requests()
 {
     if (!tor_.client_can_download())
     {
