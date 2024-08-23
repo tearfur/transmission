@@ -274,7 +274,7 @@ TEST_F(RpcTest, torrentGet)
 
     auto request = tr_variant::Map{ 1U };
 
-    request.try_emplace(TR_KEY_method, "torrent-get");
+    request.try_emplace(TR_KEY_method, "torrent_get");
 
     auto args_in = tr_variant::Map{ 1U };
     auto fields = tr_variant::Vector{};
