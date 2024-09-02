@@ -2019,7 +2019,7 @@ char const* sessionSet(tr_session* session, tr_variant::Map const& args_in, tr_v
         tr_sessionSetPaused(session, !*val);
     }
 
-    if (auto const val = args_in.value_if<bool>(TR_KEY_seed_queue_enabled))
+    if (auto const val = args_in.value_if<bool>({ TR_KEY_seed_queue_enabled, TR_KEY_seed_queue_enabled_kebab }); val)
     {
         tr_sessionSetQueueEnabled(session, TR_UP, *val);
     }
@@ -2315,7 +2315,9 @@ char const* sessionStats(tr_session* session, tr_variant::Map const& /*args_in*/
     case TR_KEY_seed_ratio_limit_camel:
         return session.desiredRatio();
     case TR_KEY_seedRatioLimited: return session.isRatioLimited();
-    case TR_KEY_seed_queue_enabled: return session.queueEnabled(TR_UP);
+    case TR_KEY_seed_queue_enabled:
+    case TR_KEY_seed_queue_enabled_kebab:
+        return session.queueEnabled(TR_UP);
     case TR_KEY_seed_queue_size: return session.queueSize(TR_UP);
     case TR_KEY_sequential_download: return session.sequential_download();
     case TR_KEY_session_id: return session.sessionId();
