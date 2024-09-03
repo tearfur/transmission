@@ -160,7 +160,7 @@ TEST_F(RpcTest, sessionGet)
     EXPECT_NE(nullptr, tor);
 
     auto request_map = tr_variant::Map{ 1U };
-    request_map.try_emplace(TR_KEY_method, "session-get"sv);
+    request_map.try_emplace(TR_KEY_method, "session_get"sv);
     auto response = tr_variant{};
     tr_rpc_request_exec(
         session_,
