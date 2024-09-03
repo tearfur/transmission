@@ -2470,7 +2470,7 @@ auto constexpr SyncHandlers = std::array<std::pair<std::string_view, SyncHandler
     { "session-close"sv, sessionClose },
     { "session_get"sv, sessionGet },
     { "session_set"sv, sessionSet },
-    { "session-stats"sv, sessionStats },
+    { "session_stats"sv, sessionStats },
     { "torrent_get"sv, torrentGet },
     { "torrent_reannounce"sv, torrentReannounce },
     { "torrent_remove"sv, torrentRemove },
