@@ -650,7 +650,7 @@ Response arguments:
 | Key | Value Type | Description
 |:--|:--|:--
 | `active_torrent_count`     | number
-| `downloadSpeed`            | number
+| `download_speed`           | number
 | `pausedTorrentCount`       | number
 | `torrentCount`             | number
 | `uploadSpeed`              | number
