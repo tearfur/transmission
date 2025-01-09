@@ -82,15 +82,17 @@ public:
         return std::size(trackers_);
     }
 
-    [[nodiscard]] TR_CONSTEXPR20 tracker_info const& at(size_t i) const
+    [[nodiscard]] tracker_info const& at(size_t i) const
     {
+        // constexpr (P1004R2) starting from c++20, GCC 12.1, clang 15
         return trackers_.at(i);
     }
 
     [[nodiscard]] tr_tracker_tier_t nextTier() const;
 
-    [[nodiscard]] TR_CONSTEXPR20 bool operator==(tr_announce_list const& that) const
+    [[nodiscard]] bool operator==(tr_announce_list const& that) const
     {
+        // constexpr (P1004R2) starting from c++20, GCC 12.1, clang 15
         return trackers_ == that.trackers_;
     }
 
@@ -113,9 +115,10 @@ public:
     bool replace(tr_tracker_id_t id, std::string_view announce_url_sv);
     size_t set(char const* const* announce_urls, tr_tracker_tier_t const* tiers, size_t n);
 
-    TR_CONSTEXPR20 void clear()
+    void clear()
     {
-        return trackers_.clear();
+        // constexpr (P1004R2) starting from c++20, GCC 12.1, clang 15
+        trackers_.clear();
     }
 
     /**

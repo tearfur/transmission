@@ -46,11 +46,11 @@ public:
     {
         return files().file_count();
     }
-    [[nodiscard]] TR_CONSTEXPR20 auto file_size(tr_file_index_t i) const
+    [[nodiscard]] auto file_size(tr_file_index_t i) const
     {
         return files().file_size(i);
     }
-    [[nodiscard]] TR_CONSTEXPR20 auto const& file_subpath(tr_file_index_t i) const
+    [[nodiscard]] auto const& file_subpath(tr_file_index_t i) const
     {
         return files().path(i);
     }
@@ -128,8 +128,9 @@ public:
         return is_private_;
     }
 
-    [[nodiscard]] TR_CONSTEXPR20 tr_sha1_digest_t const& piece_hash(tr_piece_index_t piece) const
+    [[nodiscard]] tr_sha1_digest_t const& piece_hash(tr_piece_index_t piece) const
     {
+        // constexpr (P1004R2) starting from c++20, GCC 12.1, clang 15
         return pieces_[piece];
     }
 

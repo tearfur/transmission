@@ -40,8 +40,9 @@ public:
         return std::size(files_);
     }
 
-    [[nodiscard]] TR_CONSTEXPR20 uint64_t file_size(tr_file_index_t file_index) const
+    [[nodiscard]] uint64_t file_size(tr_file_index_t file_index) const
     {
+        // constexpr (P1004R2) starting from c++20, GCC 12.1, clang 15
         return files_.at(file_index).size_;
     }
 
@@ -50,13 +51,15 @@ public:
         return total_size_;
     }
 
-    [[nodiscard]] TR_CONSTEXPR20 std::string const& path(tr_file_index_t file_index) const
+    [[nodiscard]] std::string const& path(tr_file_index_t file_index) const
     {
+        // constexpr (P1004R2) starting from c++20, GCC 12.1, clang 15
         return files_.at(file_index).path_;
     }
 
     void set_path(tr_file_index_t file_index, std::string_view path)
     {
+        // constexpr (P1004R2) starting from c++20, GCC 12.1, clang 15
         files_.at(file_index).set_path(path);
     }
 
@@ -81,8 +84,9 @@ public:
         files_.shrink_to_fit();
     }
 
-    TR_CONSTEXPR20 void clear() noexcept
+    void clear() noexcept
     {
+        // constexpr (P1004R2) starting from c++20, GCC 12.1, clang 15
         files_.clear();
         total_size_ = uint64_t{};
     }

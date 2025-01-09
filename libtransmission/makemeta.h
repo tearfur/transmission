@@ -125,7 +125,7 @@ public:
         return files_.file_count();
     }
 
-    [[nodiscard]] TR_CONSTEXPR20 auto file_size(tr_file_index_t i) const noexcept
+    [[nodiscard]] auto file_size(tr_file_index_t i) const noexcept
     {
         return files_.file_size(i);
     }

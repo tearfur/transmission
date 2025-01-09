@@ -27,8 +27,9 @@ public:
         return code_;
     }
 
-    [[nodiscard]] TR_CONSTEXPR20 auto message() const noexcept
+    [[nodiscard]] auto message() const noexcept
     {
+        // constexpr (P0980R1) starting from c++20, GCC 12.1, clang 15
         return std::string_view{ message_ };
     }
 

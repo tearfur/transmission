@@ -49,8 +49,9 @@ public:
         return metadata_;
     }
 
-    [[nodiscard]] TR_CONSTEXPR20 std::string_view log_name() const noexcept
+    [[nodiscard]] std::string_view log_name() const noexcept
     {
+        // constexpr (P0980R1) starting from c++20, GCC 12.1, clang 15
         return log_name_;
     }
 

@@ -40,8 +40,9 @@ public:
         return std::size(webseed_urls_);
     }
 
-    [[nodiscard]] TR_CONSTEXPR20 auto const& webseed(size_t i) const
+    [[nodiscard]] auto const& webseed(size_t i) const
     {
+        // constexpr (P1004R2) starting from c++20, GCC 12.1, clang 15
         return webseed_urls_.at(i);
     }
 
