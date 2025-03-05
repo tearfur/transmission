@@ -17,7 +17,7 @@ Debian packages.
 Follow these steps to build the webapp from source on Debian without Node:
 
 ```sh
-$ sudo apt install rsass perl esbuild
+$ sudo apt install rsass perl esbuild node-fast-deep-equal
 $ cd transmission/web/
 $ rsass assets/css/transmission-app.scss > assets/css/transmission-app.css
 $ perl -p -i -e 's/transmission-app.scss/transmission-app.css/' src/main.js
