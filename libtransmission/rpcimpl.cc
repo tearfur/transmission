@@ -1235,7 +1235,7 @@ char const* torrentSet(tr_session* session, tr_variant::Map const& args_in, tr_v
             tr_torrentSetSpeedLimit_KBps(tor, TR_DOWN, *val);
         }
 
-        if (auto const val = args_in.value_if<bool>(TR_KEY_sequential_download))
+        if (auto const val = args_in.value_if<bool>(TR_KEY_sequential_download); val)
         {
             tor->set_sequential_download(*val);
         }
@@ -1406,7 +1406,7 @@ char const* portTest(tr_session* session, tr_variant::Map const& args_in, struct
     auto options = tr_web::FetchOptions{ url, onPortTested, idle_data };
     options.timeout_secs = TimeoutSecs;
 
-    if (auto const val = args_in.value_if<std::string_view>(TR_KEY_ip_protocol))
+    if (auto const val = args_in.value_if<std::string_view>(TR_KEY_ip_protocol); val)
     {
         if (*val == "ipv4"sv)
         {
