@@ -125,7 +125,7 @@ public:
         return files_.file_count();
     }
 
-    [[nodiscard]] TR_CONSTEXPR20 auto file_size(tr_file_index_t i) const noexcept
+    [[nodiscard]] TR_CONSTEXPR_VEC auto file_size(tr_file_index_t i) const noexcept
     {
         return files_.file_size(i);
     }
@@ -140,7 +140,7 @@ public:
         return tr_sys_path_basename(top_);
     }
 
-    [[nodiscard]] auto const& path(tr_file_index_t i) const noexcept
+    [[nodiscard]] TR_CONSTEXPR_VEC auto const& path(tr_file_index_t i) const noexcept
     {
         return files_.path(i);
     }
