@@ -371,7 +371,7 @@ private:
                     return 1U;
                 }
 
-                if (sequential_download_from_piece == 0)
+                if (sequential_download_from_piece <= 1)
                 {
                     return piece + 1U;
                 }
@@ -452,7 +452,8 @@ Wishlist::Impl::Impl(Mediator& mediator_in)
           mediator_in.observe_sent_cancel([this](tr_torrent*, tr_peer*, tr_block_index_t b) { dec_active_request_block(b); }),
           mediator_in.observe_sent_request([this](tr_torrent*, tr_peer*, tr_block_span_t bs) { inc_active_request_span(bs); }),
           mediator_in.observe_sequential_download_changed([this](tr_torrent*, bool) { set_candidates_dirty(); }),
-          mediator_in.observe_sequential_download_from_piece_changed([this](tr_torrent*, bool) { set_candidates_dirty(); }),
+          mediator_in.observe_sequential_download_from_piece_changed([this](tr_torrent*, tr_piece_index_t)
+                                                                     { set_candidates_dirty(); }),
       } }
     , mediator_{ mediator_in }
 {
