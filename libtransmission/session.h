@@ -413,7 +413,7 @@ public:
         bool tcp_enabled = true;
         bool utp_enabled = true;
         double ratio_limit = 2.0;
-        size_t cache_size_mbytes = 4U;
+        size_t cache_size_mbytes = 0U;
         size_t download_queue_size = 5U;
         size_t idle_seeding_limit_minutes = 30U;
         size_t peer_limit_global = TR_DEFAULT_PEER_LIMIT_GLOBAL;
