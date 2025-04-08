@@ -173,7 +173,8 @@ jobs:
             -DENABLE_UTILS=ON \
             -DREBUILD_WEB=OFF \
             -DRUN_CLANG_TIDY=OFF \
-            -DUSE_SYSTEM_EVENT2=ON
+            -DUSE_SYSTEM_EVENT2=ON \
+            -DUSE_SYSTEM_MINIUPNPC=ON
       - name: Make
         run: cmake --build obj --config Debug --target libtransmission-test transmission-show
       - name: Test with sanitizers
@@ -214,7 +215,8 @@ jobs:
             -DENABLE_UTILS=ON \
             -DREBUILD_WEB=OFF \
             -DRUN_CLANG_TIDY=OFF \
-            -DUSE_SYSTEM_EVENT2=ON
+            -DUSE_SYSTEM_EVENT2=ON \
+            -DUSE_SYSTEM_MINIUPNPC=ON
       - name: Make
         run: cmake --build obj --config Debug --target libtransmission-test transmission-show
       - name: Test with sanitizers
@@ -268,7 +270,8 @@ jobs:
             -DCMAKE_INSTALL_PREFIX=pfx \
             -DENABLE_TESTS=${{ (needs.what-to-make.outputs.make-tests == 'true') && 'ON' || 'OFF' }} \
             -DRUN_CLANG_TIDY=ON \
-            -DUSE_SYSTEM_EVENT2=ON
+            -DUSE_SYSTEM_EVENT2=ON \
+            -DUSE_SYSTEM_MINIUPNPC=ON
       - name: Make (Core)
         run: cmake --build obj --config Debug --target transmission 2>&1 | tee makelog
       - name: Make (Tests)
@@ -369,7 +372,8 @@ jobs:
             -DREBUILD_WEB=${{ (needs.what-to-make.outputs.make-web == 'true') && 'ON' || 'OFF' }} \
             -DENABLE_WERROR=ON \
             -DRUN_CLANG_TIDY=OFF \
-            -DUSE_SYSTEM_EVENT2=ON
+            -DUSE_SYSTEM_EVENT2=ON \
+            -DUSE_SYSTEM_MINIUPNPC=ON
       - name: Make
         run: cmake --build obj --config RelWithDebInfo
       - name: Test
@@ -421,7 +425,8 @@ jobs:
             -DENABLE_TESTS=OFF \
             -DENABLE_WERROR=ON \
             -DRUN_CLANG_TIDY=OFF \
-            -DUSE_SYSTEM_EVENT2=ON
+            -DUSE_SYSTEM_EVENT2=ON \
+            -DUSE_SYSTEM_MINIUPNPC=ON
       - name: Make
         run: cmake --build obj --config RelWithDebInfo
 
@@ -485,7 +490,8 @@ jobs:
             -DREBUILD_WEB=${{ (needs.what-to-make.outputs.make-web == 'true') && 'ON' || 'OFF' }} \
             -DENABLE_WERROR=ON \
             -DRUN_CLANG_TIDY=OFF \
-            -DUSE_SYSTEM_EVENT2=ON
+            -DUSE_SYSTEM_EVENT2=ON \
+            -DUSE_SYSTEM_MINIUPNPC=ON
       - name: Make
         run: cmake --build obj --config RelWithDebInfo
       - name: Test
@@ -799,7 +805,8 @@ jobs:
             -DREBUILD_WEB=${{ (needs.what-to-make.outputs.make-web == 'true') && 'ON' || 'OFF' }} \
             -DENABLE_WERROR=ON \
             -DRUN_CLANG_TIDY=OFF \
-            -DUSE_SYSTEM_EVENT2=ON
+            -DUSE_SYSTEM_EVENT2=ON \
+            -DUSE_SYSTEM_MINIUPNPC=ON
       - name: Build
         run: cmake --build obj --config RelWithDebInfo
       - name: Test
@@ -877,7 +884,8 @@ jobs:
             -DENABLE_DEPRECATED=ON \
             -DENABLE_WERROR=OFF \
             -DRUN_CLANG_TIDY=OFF \
-            -DUSE_SYSTEM_EVENT2=ON
+            -DUSE_SYSTEM_EVENT2=ON \
+            -DUSE_SYSTEM_MINIUPNPC=ON
       - name: Build
         run: cmake --build obj --config RelWithDebInfo
       - name: Test
@@ -952,7 +960,8 @@ jobs:
             -DREBUILD_WEB=${{ (needs.what-to-make.outputs.make-web == 'true') && 'ON' || 'OFF' }} \
             -DENABLE_WERROR=ON \
             -DRUN_CLANG_TIDY=OFF \
-            -DUSE_SYSTEM_EVENT2=ON
+            -DUSE_SYSTEM_EVENT2=ON \
+            -DUSE_SYSTEM_MINIUPNPC=ON
       - name: Make
         run: cmake --build obj --config RelWithDebInfo
       - name: Test
@@ -1077,7 +1086,8 @@ jobs:
             -DREBUILD_WEB=OFF \
             -DENABLE_WERROR=ON \
             -DRUN_CLANG_TIDY=OFF \
-            -DUSE_SYSTEM_EVENT2=ON
+            -DUSE_SYSTEM_EVENT2=ON \
+            -DUSE_SYSTEM_MINIUPNPC=ON
       - name: Make
         run: cmake --build obj --config RelWithDebInfo -- "-k 0"
 
@@ -1155,6 +1165,7 @@ jobs:
               -DENABLE_WERROR=ON \
               -DRUN_CLANG_TIDY=OFF \
               -DUSE_SYSTEM_EVENT2=ON \
+              -DUSE_SYSTEM_MINIUPNPC=ON \
               -DWITH_CRYPTO=${{ matrix.crypto }}
             cmake --build obj --config RelWithDebInfo
             if [ '${{ needs.what-to-make.outputs.make-tests }}' = 'true' ]; then
@@ -1232,7 +1243,8 @@ jobs:
               -DENABLE_DEPRECATED=ON \
               -DENABLE_WERROR=ON \
               -DRUN_CLANG_TIDY=OFF \
-              -DUSE_SYSTEM_EVENT2=OFF `# Re-enable after our CMake build switched to event-core + event-extra`
+              -DUSE_SYSTEM_EVENT2=OFF `# Re-enable after our CMake build switched to event-core + event-extra` \
+              -DUSE_SYSTEM_MINIUPNPC=ON
             cmake --build obj --config RelWithDebInfo
             if [ '${{ needs.what-to-make.outputs.make-tests }}' = 'true' ]; then
               cmake -E chdir obj ctest -j `getconf NPROCESSORS_ONLN` --build-config RelWithDebInfo --output-on-failure
@@ -1318,7 +1330,8 @@ jobs:
               -DENABLE_DEPRECATED=ON \
               -DENABLE_WERROR=ON \
               -DRUN_CLANG_TIDY=OFF \
-              -DUSE_SYSTEM_EVENT2=ON
+              -DUSE_SYSTEM_EVENT2=ON \
+              -DUSE_SYSTEM_MINIUPNPC=ON
             cmake --build obj --config RelWithDebInfo
             if [ '${{ needs.what-to-make.outputs.make-tests }}' = 'true' ]; then
               cmake -E chdir obj ctest -j `getconf NPROCESSORS_ONLN` --build-config RelWithDebInfo --output-on-failure
@@ -1395,7 +1408,8 @@ jobs:
               -DENABLE_DEPRECATED=ON \
               -DENABLE_WERROR=ON \
               -DRUN_CLANG_TIDY=OFF \
-              -DUSE_SYSTEM_EVENT2=ON
+              -DUSE_SYSTEM_EVENT2=ON \
+              -DUSE_SYSTEM_MINIUPNPC=ON
             cmake --build obj --config RelWithDebInfo
             if [ '${{ needs.what-to-make.outputs.make-tests }}' = 'true' ]; then
               cmake -E chdir obj ctest -j `getconf NPROCESSORS_ONLN` --build-config RelWithDebInfo --output-on-failure
