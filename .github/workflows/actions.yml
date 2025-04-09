@@ -173,6 +173,7 @@ jobs:
             -DENABLE_UTILS=ON \
             -DREBUILD_WEB=OFF \
             -DRUN_CLANG_TIDY=OFF \
+            -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON
       - name: Make
@@ -215,6 +216,7 @@ jobs:
             -DENABLE_UTILS=ON \
             -DREBUILD_WEB=OFF \
             -DRUN_CLANG_TIDY=OFF \
+            -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON
       - name: Make
@@ -270,6 +272,7 @@ jobs:
             -DCMAKE_INSTALL_PREFIX=pfx \
             -DENABLE_TESTS=${{ (needs.what-to-make.outputs.make-tests == 'true') && 'ON' || 'OFF' }} \
             -DRUN_CLANG_TIDY=ON \
+            -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON
       - name: Make (Core)
@@ -372,6 +375,7 @@ jobs:
             -DREBUILD_WEB=${{ (needs.what-to-make.outputs.make-web == 'true') && 'ON' || 'OFF' }} \
             -DENABLE_WERROR=ON \
             -DRUN_CLANG_TIDY=OFF \
+            -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON
       - name: Make
@@ -425,6 +429,7 @@ jobs:
             -DENABLE_TESTS=OFF \
             -DENABLE_WERROR=ON \
             -DRUN_CLANG_TIDY=OFF \
+            -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON
       - name: Make
@@ -454,6 +459,8 @@ jobs:
             g++ \
             gettext-dev \
             git \
+            libdeflate-dev \
+            libdeflate-static \
             libevent-dev \
             libpsl \
             linux-headers \
@@ -490,6 +497,7 @@ jobs:
             -DREBUILD_WEB=${{ (needs.what-to-make.outputs.make-web == 'true') && 'ON' || 'OFF' }} \
             -DENABLE_WERROR=ON \
             -DRUN_CLANG_TIDY=OFF \
+            -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON
       - name: Make
@@ -805,6 +813,7 @@ jobs:
             -DREBUILD_WEB=${{ (needs.what-to-make.outputs.make-web == 'true') && 'ON' || 'OFF' }} \
             -DENABLE_WERROR=ON \
             -DRUN_CLANG_TIDY=OFF \
+            -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON
       - name: Build
@@ -884,6 +893,7 @@ jobs:
             -DENABLE_DEPRECATED=ON \
             -DENABLE_WERROR=OFF \
             -DRUN_CLANG_TIDY=OFF \
+            -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON
       - name: Build
@@ -960,6 +970,7 @@ jobs:
             -DREBUILD_WEB=${{ (needs.what-to-make.outputs.make-web == 'true') && 'ON' || 'OFF' }} \
             -DENABLE_WERROR=ON \
             -DRUN_CLANG_TIDY=OFF \
+            -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON
       - name: Make
@@ -1086,6 +1097,7 @@ jobs:
             -DREBUILD_WEB=OFF \
             -DENABLE_WERROR=ON \
             -DRUN_CLANG_TIDY=OFF \
+            -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON
       - name: Make
@@ -1164,6 +1176,7 @@ jobs:
               -DENABLE_DEPRECATED=ON \
               -DENABLE_WERROR=ON \
               -DRUN_CLANG_TIDY=OFF \
+              -DUSE_SYSTEM_DEFLATE=ON \
               -DUSE_SYSTEM_EVENT2=ON \
               -DUSE_SYSTEM_MINIUPNPC=ON \
               -DWITH_CRYPTO=${{ matrix.crypto }}
@@ -1243,6 +1256,7 @@ jobs:
               -DENABLE_DEPRECATED=ON \
               -DENABLE_WERROR=ON \
               -DRUN_CLANG_TIDY=OFF \
+              -DUSE_SYSTEM_DEFLATE=ON \
               -DUSE_SYSTEM_EVENT2=OFF `# Re-enable after our CMake build switched to event-core + event-extra` \
               -DUSE_SYSTEM_MINIUPNPC=ON
             cmake --build obj --config RelWithDebInfo
@@ -1330,6 +1344,7 @@ jobs:
               -DENABLE_DEPRECATED=ON \
               -DENABLE_WERROR=ON \
               -DRUN_CLANG_TIDY=OFF \
+              -DUSE_SYSTEM_DEFLATE=ON \
               -DUSE_SYSTEM_EVENT2=ON \
               -DUSE_SYSTEM_MINIUPNPC=ON
             cmake --build obj --config RelWithDebInfo
@@ -1408,6 +1423,7 @@ jobs:
               -DENABLE_DEPRECATED=ON \
               -DENABLE_WERROR=ON \
               -DRUN_CLANG_TIDY=OFF \
+              -DUSE_SYSTEM_DEFLATE=ON \
               -DUSE_SYSTEM_EVENT2=ON \
               -DUSE_SYSTEM_MINIUPNPC=ON
             cmake --build obj --config RelWithDebInfo
