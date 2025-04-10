@@ -178,7 +178,8 @@ jobs:
             -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON \
-            -DUSE_SYSTEM_NATPMP=ON
+            -DUSE_SYSTEM_NATPMP=ON \
+            -DUSE_SYSTEM_PSL=ON
       - name: Make
         run: cmake --build obj --config Debug --target libtransmission-test transmission-show
       - name: Test with sanitizers
@@ -223,7 +224,8 @@ jobs:
             -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON \
-            -DUSE_SYSTEM_NATPMP=ON
+            -DUSE_SYSTEM_NATPMP=ON \
+            -DUSE_SYSTEM_PSL=ON
       - name: Make
         run: cmake --build obj --config Debug --target libtransmission-test transmission-show
       - name: Test with sanitizers
@@ -282,7 +284,8 @@ jobs:
             -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON \
-            -DUSE_SYSTEM_NATPMP=ON
+            -DUSE_SYSTEM_NATPMP=ON \
+            -DUSE_SYSTEM_PSL=ON
       - name: Make (Core)
         run: cmake --build obj --config Debug --target transmission 2>&1 | tee makelog
       - name: Make (Tests)
@@ -387,7 +390,8 @@ jobs:
             -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON \
-            -DUSE_SYSTEM_NATPMP=ON
+            -DUSE_SYSTEM_NATPMP=ON \
+            -DUSE_SYSTEM_PSL=ON
       - name: Make
         run: cmake --build obj --config RelWithDebInfo
       - name: Test
@@ -443,7 +447,8 @@ jobs:
             -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON \
-            -DUSE_SYSTEM_NATPMP=ON
+            -DUSE_SYSTEM_NATPMP=ON \
+            -DUSE_SYSTEM_PSL=ON
       - name: Make
         run: cmake --build obj --config RelWithDebInfo
 
@@ -475,7 +480,7 @@ jobs:
             libdeflate-static \
             libevent-dev \
             libnatpmp-dev \
-            libpsl \
+            libpsl-dev \
             linux-headers \
             miniupnpc-dev \
             ninja \
@@ -513,7 +518,8 @@ jobs:
             -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON \
-            -DUSE_SYSTEM_NATPMP=ON
+            -DUSE_SYSTEM_NATPMP=ON \
+            -DUSE_SYSTEM_PSL=ON
       - name: Make
         run: cmake --build obj --config RelWithDebInfo
       - name: Test
@@ -832,7 +838,8 @@ jobs:
             -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON \
-            -DUSE_SYSTEM_NATPMP=ON
+            -DUSE_SYSTEM_NATPMP=ON \
+            -DUSE_SYSTEM_PSL=ON
       - name: Build
         run: cmake --build obj --config RelWithDebInfo
       - name: Test
@@ -915,7 +922,8 @@ jobs:
             -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON \
-            -DUSE_SYSTEM_NATPMP=ON
+            -DUSE_SYSTEM_NATPMP=ON \
+            -DUSE_SYSTEM_PSL=ON
       - name: Build
         run: cmake --build obj --config RelWithDebInfo
       - name: Test
@@ -995,7 +1003,8 @@ jobs:
             -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON \
-            -DUSE_SYSTEM_NATPMP=ON
+            -DUSE_SYSTEM_NATPMP=ON \
+            -DUSE_SYSTEM_PSL=ON
       - name: Make
         run: cmake --build obj --config RelWithDebInfo
       - name: Test
@@ -1125,7 +1134,8 @@ jobs:
             -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON \
-            -DUSE_SYSTEM_NATPMP=ON
+            -DUSE_SYSTEM_NATPMP=ON \
+            -DUSE_SYSTEM_PSL=ON
       - name: Make
         run: cmake --build obj --config RelWithDebInfo -- "-k 0"
 
@@ -1207,6 +1217,7 @@ jobs:
               -DUSE_SYSTEM_EVENT2=ON \
               -DUSE_SYSTEM_MINIUPNPC=ON \
               -DUSE_SYSTEM_NATPMP=ON \
+              -DUSE_SYSTEM_PSL=ON \
               -DWITH_CRYPTO=${{ matrix.crypto }}
             cmake --build obj --config RelWithDebInfo
             if [ '${{ needs.what-to-make.outputs.make-tests }}' = 'true' ]; then
@@ -1287,7 +1298,8 @@ jobs:
               -DUSE_SYSTEM_DEFLATE=ON \
               -DUSE_SYSTEM_EVENT2=OFF `# Re-enable after our CMake build switched to event-core + event-extra` \
               -DUSE_SYSTEM_MINIUPNPC=ON \
-              -DUSE_SYSTEM_NATPMP=ON
+              -DUSE_SYSTEM_NATPMP=ON \
+              -DUSE_SYSTEM_PSL=ON
             cmake --build obj --config RelWithDebInfo
             if [ '${{ needs.what-to-make.outputs.make-tests }}' = 'true' ]; then
               cmake -E chdir obj ctest -j `getconf NPROCESSORS_ONLN` --build-config RelWithDebInfo --output-on-failure
@@ -1375,7 +1387,8 @@ jobs:
               -DRUN_CLANG_TIDY=OFF \
               -DUSE_SYSTEM_DEFLATE=ON \
               -DUSE_SYSTEM_EVENT2=ON \
-              -DUSE_SYSTEM_MINIUPNPC=ON
+              -DUSE_SYSTEM_MINIUPNPC=ON \
+              -DUSE_SYSTEM_PSL=ON
             cmake --build obj --config RelWithDebInfo
             if [ '${{ needs.what-to-make.outputs.make-tests }}' = 'true' ]; then
               cmake -E chdir obj ctest -j `getconf NPROCESSORS_ONLN` --build-config RelWithDebInfo --output-on-failure
@@ -1456,7 +1469,8 @@ jobs:
               -DUSE_SYSTEM_DEFLATE=ON \
               -DUSE_SYSTEM_EVENT2=ON \
               -DUSE_SYSTEM_MINIUPNPC=ON \
-              -DUSE_SYSTEM_NATPMP=ON
+              -DUSE_SYSTEM_NATPMP=ON \
+              -DUSE_SYSTEM_PSL=ON
             cmake --build obj --config RelWithDebInfo
             if [ '${{ needs.what-to-make.outputs.make-tests }}' = 'true' ]; then
               cmake -E chdir obj ctest -j `getconf NPROCESSORS_ONLN` --build-config RelWithDebInfo --output-on-failure
