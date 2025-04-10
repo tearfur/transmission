@@ -121,7 +121,7 @@ jobs:
           exit 1
 
   sanitizer-tests-ubuntu:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: [ what-to-make ]
     if: ${{ needs.what-to-make.outputs.make-tests == 'true' }}
     steps:
@@ -143,6 +143,7 @@ jobs:
             libcurl4-openssl-dev \
             libdeflate-dev \
             libevent-dev \
+            libfast-float-dev \
             libfmt-dev \
             libminiupnpc-dev \
             libnatpmp-dev \
@@ -177,6 +178,7 @@ jobs:
             -DUSE_SYSTEM_B64=ON \
             -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
+            -DUSE_SYSTEM_FAST_FLOAT=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON \
             -DUSE_SYSTEM_NATPMP=ON \
             -DUSE_SYSTEM_PSL=ON
@@ -196,7 +198,7 @@ jobs:
           echo '${{ toJSON(runner) }}'
           sw_vers
       - name: Get Dependencies
-        run: brew install --formulae cmake gettext libb64 libdeflate libevent libnatpmp libpsl miniupnpc ninja node pkgconf
+        run: brew install --formulae cmake fast_float gettext libb64 libdeflate libevent libnatpmp libpsl miniupnpc ninja node pkgconf
       - name: Get Source
         uses: actions/checkout@v4
         with:
@@ -223,6 +225,7 @@ jobs:
             -DUSE_SYSTEM_B64=ON \
             -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
+            -DUSE_SYSTEM_FAST_FLOAT=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON \
             -DUSE_SYSTEM_NATPMP=ON \
             -DUSE_SYSTEM_PSL=ON
@@ -257,6 +260,7 @@ jobs:
             libcurl4-openssl-dev \
             libdeflate-dev \
             libevent-dev \
+            libfast-float-dev \
             libfmt-dev \
             libminiupnpc-dev \
             libnatpmp-dev \
@@ -283,6 +287,7 @@ jobs:
             -DUSE_SYSTEM_B64=ON \
             -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
+            -DUSE_SYSTEM_FAST_FLOAT=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON \
             -DUSE_SYSTEM_NATPMP=ON \
             -DUSE_SYSTEM_PSL=ON
@@ -355,7 +360,7 @@ jobs:
           echo '${{ toJSON(runner) }}'
           sw_vers
       - name: Get Dependencies
-        run: brew install --formulae cmake gettext libb64 libdeflate libevent libnatpmp libpsl miniupnpc ninja node pkgconf
+        run: brew install --formulae cmake fast_float gettext libb64 libdeflate libevent libnatpmp libpsl miniupnpc ninja node pkgconf
       - name: Get Dependencies (GTK)
         if: ${{ needs.what-to-make.outputs.make-gtk == 'true' }}
         run: brew install --formula gtkmm3
@@ -389,6 +394,7 @@ jobs:
             -DUSE_SYSTEM_B64=ON \
             -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
+            -DUSE_SYSTEM_FAST_FLOAT=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON \
             -DUSE_SYSTEM_NATPMP=ON \
             -DUSE_SYSTEM_PSL=ON
@@ -418,7 +424,7 @@ jobs:
           echo '${{ toJSON(runner) }}'
           sw_vers
       - name: Get Dependencies
-        run: brew install --formulae cmake gettext libb64 libdeflate libevent libnatpmp libpsl miniupnpc ninja node pkgconf
+        run: brew install --formulae cmake fast_float gettext libb64 libdeflate libevent libnatpmp libpsl miniupnpc ninja node pkgconf
       - name: Get Source
         uses: actions/checkout@v4
         with:
@@ -446,6 +452,7 @@ jobs:
             -DUSE_SYSTEM_B64=ON \
             -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
+            -DUSE_SYSTEM_FAST_FLOAT=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON \
             -DUSE_SYSTEM_NATPMP=ON \
             -DUSE_SYSTEM_PSL=ON
@@ -454,7 +461,7 @@ jobs:
 
   alpine-musl:
     needs: [ what-to-make ]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     container:
       image: alpine:latest
     if: ${{ needs.what-to-make.outputs.make-cli == 'true' || needs.what-to-make.outputs.make-daemon == 'true' || needs.what-to-make.outputs.make-gtk == 'true' || needs.what-to-make.outputs.make-qt == 'true' || needs.what-to-make.outputs.make-tests == 'true' || needs.what-to-make.outputs.make-utils == 'true' }}
@@ -472,6 +479,7 @@ jobs:
             ca-certificates \
             cmake \
             curl-dev \
+            fast_float \
             fmt-dev \
             g++ \
             gettext-dev \
@@ -517,6 +525,7 @@ jobs:
             -DRUN_CLANG_TIDY=OFF \
             -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
+            -DUSE_SYSTEM_FAST_FLOAT=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON \
             -DUSE_SYSTEM_NATPMP=ON \
             -DUSE_SYSTEM_PSL=ON
@@ -677,6 +686,7 @@ jobs:
             -DUSE_SYSTEM_EVENT2=OFF \
             -DUSE_SYSTEM_DEFLATE=OFF \
             -DUSE_SYSTEM_DHT=OFF \
+            -DUSE_SYSTEM_FAST_FLOAT=OFF \
             -DUSE_SYSTEM_MINIUPNPC=OFF \
             -DUSE_SYSTEM_NATPMP=OFF \
             -DUSE_SYSTEM_UTP=OFF \
@@ -749,6 +759,7 @@ jobs:
             -DUSE_SYSTEM_EVENT2=OFF \
             -DUSE_SYSTEM_DEFLATE=OFF \
             -DUSE_SYSTEM_DHT=OFF \
+            -DUSE_SYSTEM_FAST_FLOAT=OFF \
             -DUSE_SYSTEM_MINIUPNPC=OFF \
             -DUSE_SYSTEM_NATPMP=OFF \
             -DUSE_SYSTEM_UTP=OFF \
@@ -771,7 +782,7 @@ jobs:
   debian-11-from-tarball:
     needs: [ make-source-tarball, what-to-make ]
     if: ${{ needs.what-to-make.outputs.make-cli == 'true' || needs.what-to-make.outputs.make-daemon == 'true' || needs.what-to-make.outputs.make-gtk == 'true' || needs.what-to-make.outputs.make-qt == 'true' || needs.what-to-make.outputs.make-tests == 'true' || needs.what-to-make.outputs.make-utils == 'true' }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     container:
       image: debian:11-slim
     steps:
@@ -852,12 +863,107 @@ jobs:
           name: binaries-${{ github.job }}
           path: pfx/**/*
 
-  fedora-39-from-tarball:
+  debian-from-tarball:
     needs: [ make-source-tarball, what-to-make ]
     if: ${{ needs.what-to-make.outputs.make-cli == 'true' || needs.what-to-make.outputs.make-daemon == 'true' || needs.what-to-make.outputs.make-gtk == 'true' || needs.what-to-make.outputs.make-qt == 'true' || needs.what-to-make.outputs.make-tests == 'true' || needs.what-to-make.outputs.make-utils == 'true' }}
-    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        version: [stable, testing]
+    runs-on: ubuntu-latest
     container:
-      image: fedora:39
+      image: debian:${{ matrix.version }}-slim
+    steps:
+      - name: Show Configuration
+        run: |
+          echo '${{ toJSON(needs) }}'
+          echo '${{ toJSON(runner) }}'
+          cat /etc/os-release
+      - name: Get Dependencies
+        run: |
+          set -ex
+          apt update
+          apt install -y --no-install-recommends \
+            ca-certificates \
+            cmake \
+            g++ \
+            gettext \
+            libb64-dev \
+            libcurl4-openssl-dev \
+            libdeflate-dev \
+            libevent-dev \
+            libfast-float-dev \
+            libfmt-dev \
+            libminiupnpc-dev \
+            libnatpmp-dev \
+            libpsl-dev \
+            libssl-dev \
+            ninja-build \
+            pkg-config \
+            xz-utils
+      - name: Get NPM
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - name: Get Dependencies (GTK3)
+        if: ${{ needs.what-to-make.outputs.make-gtk == 'true' }}
+        run: apt install -y --no-install-recommends libglibmm-2.4-dev libgtkmm-3.0-dev
+      - name: Get Dependencies (Qt6)
+        if: ${{ needs.what-to-make.outputs.make-qt == 'true' }}
+        run: apt install -y --no-install-recommends qt6-svg-dev qt6-tools-dev
+      - name: Get Source
+        uses: actions/download-artifact@v4
+        with:
+          name: source-tarball
+      - name: Extract Source
+        run: mkdir src && tar xf transmission*.tar.* -C src --strip-components 1
+      - name: Configure
+        run: |
+          cmake \
+            -S src \
+            -B obj \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_INSTALL_PREFIX=pfx \
+            -DENABLE_CLI=${{ (needs.what-to-make.outputs.make-cli == 'true') && 'ON' || 'OFF' }} \
+            -DENABLE_DAEMON=${{ (needs.what-to-make.outputs.make-daemon == 'true') && 'ON' || 'OFF' }} \
+            -DENABLE_GTK=${{ (needs.what-to-make.outputs.make-gtk == 'true') && 'ON' || 'OFF' }} \
+            -DENABLE_MAC=OFF \
+            -DENABLE_QT=${{ (needs.what-to-make.outputs.make-qt == 'true') && 'ON' || 'OFF' }} \
+            -DENABLE_TESTS=${{ (needs.what-to-make.outputs.make-tests == 'true') && 'ON' || 'OFF' }} \
+            -DENABLE_UTILS=${{ (needs.what-to-make.outputs.make-utils == 'true') && 'ON' || 'OFF' }} \
+            -DREBUILD_WEB=${{ (needs.what-to-make.outputs.make-web == 'true') && 'ON' || 'OFF' }} \
+            -DENABLE_WERROR=ON \
+            -DRUN_CLANG_TIDY=OFF \
+            -DUSE_SYSTEM_B64=ON \
+            -DUSE_SYSTEM_DEFLATE=ON \
+            -DUSE_SYSTEM_EVENT2=ON \
+            -DUSE_SYSTEM_FAST_FLOAT=ON \
+            -DUSE_SYSTEM_MINIUPNPC=ON \
+            -DUSE_SYSTEM_NATPMP=ON \
+            -DUSE_SYSTEM_PSL=ON
+      - name: Build
+        run: cmake --build obj --config RelWithDebInfo
+      - name: Test
+        if: ${{ needs.what-to-make.outputs.make-tests == 'true' }}
+        run: cmake -E chdir obj ctest -j $(nproc) --build-config RelWithDebInfo --output-on-failure
+      - name: Install
+        run: cmake --install obj --config RelWithDebInfo --strip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ github.job }}-${{ matrix.version }}
+          path: pfx/**/*
+
+  fedora-from-tarball:
+    needs: [ make-source-tarball, what-to-make ]
+    if: ${{ needs.what-to-make.outputs.make-cli == 'true' || needs.what-to-make.outputs.make-daemon == 'true' || needs.what-to-make.outputs.make-gtk == 'true' || needs.what-to-make.outputs.make-qt == 'true' || needs.what-to-make.outputs.make-tests == 'true' || needs.what-to-make.outputs.make-utils == 'true' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        version: [40, 41, 42]
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:${{ matrix.version }}
     steps:
       - name: Show Configuration
         run: |
@@ -870,6 +976,7 @@ jobs:
           dnf install -y \
             ca-certificates \
             cmake \
+            fast_float-devel \
             fmt-devel \
             gcc-c++ \
             gettext \
@@ -888,7 +995,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
-      - name: Get Dependencies (GTK)
+      - name: Get Dependencies (GTK4)
         if: ${{ needs.what-to-make.outputs.make-gtk == 'true' }}
         run: dnf install -y glibmm2.68-devel gtkmm4.0-devel
       - name: Get Dependencies (Qt6)
@@ -921,6 +1028,7 @@ jobs:
             -DUSE_SYSTEM_B64=ON \
             -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
+            -DUSE_SYSTEM_FAST_FLOAT=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON \
             -DUSE_SYSTEM_NATPMP=ON \
             -DUSE_SYSTEM_PSL=ON
@@ -930,16 +1038,16 @@ jobs:
         if: ${{ needs.what-to-make.outputs.make-tests == 'true' }}
         run: cmake -E chdir obj ctest -j $(nproc) --build-config RelWithDebInfo --output-on-failure
       - name: Install
-        run: cmake --build obj --config RelWithDebInfo --target install/strip
+        run: cmake --install obj --config RelWithDebInfo --strip
       - uses: actions/upload-artifact@v4
         with:
-          name: binaries-${{ github.job }}
+          name: binaries-${{ github.job }}-${{ matrix.version }}
           path: pfx/**/*
 
-  ubuntu-22-04-from-tarball:
+  ubuntu-24-04-from-tarball:
     needs: [ make-source-tarball, what-to-make ]
     if: ${{ needs.what-to-make.outputs.make-cli == 'true' || needs.what-to-make.outputs.make-daemon == 'true' || needs.what-to-make.outputs.make-gtk == 'true' || needs.what-to-make.outputs.make-qt == 'true' || needs.what-to-make.outputs.make-tests == 'true' || needs.what-to-make.outputs.make-utils == 'true' }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Show Configuration
         run: |
@@ -960,6 +1068,7 @@ jobs:
             libcurl4-openssl-dev \
             libdeflate-dev \
             libevent-dev \
+            libfast-float-dev \
             libfmt-dev \
             libminiupnpc-dev \
             libnatpmp-dev \
@@ -1002,6 +1111,7 @@ jobs:
             -DUSE_SYSTEM_B64=ON \
             -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
+            -DUSE_SYSTEM_FAST_FLOAT=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON \
             -DUSE_SYSTEM_NATPMP=ON \
             -DUSE_SYSTEM_PSL=ON
@@ -1093,6 +1203,7 @@ jobs:
             libcurl4-openssl-dev \
             libdeflate-dev \
             libevent-dev \
+            libfast-float-dev \
             libfmt-dev \
             libminiupnpc-dev \
             libnatpmp-dev \
@@ -1133,6 +1244,7 @@ jobs:
             -DUSE_SYSTEM_B64=ON \
             -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
+            -DUSE_SYSTEM_FAST_FLOAT=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON \
             -DUSE_SYSTEM_NATPMP=ON \
             -DUSE_SYSTEM_PSL=ON
@@ -1176,6 +1288,7 @@ jobs:
               curl \
               cmake \
               dht \
+              fast_float \
               gettext \
               `[ '${{ needs.what-to-make.outputs.make-gtk }}' = 'true' ] && echo gtkmm30` \
               libb64 \
@@ -1215,6 +1328,7 @@ jobs:
               -DUSE_SYSTEM_B64=ON \
               -DUSE_SYSTEM_DEFLATE=ON \
               -DUSE_SYSTEM_EVENT2=ON \
+              -DUSE_SYSTEM_FAST_FLOAT=ON \
               -DUSE_SYSTEM_MINIUPNPC=ON \
               -DUSE_SYSTEM_NATPMP=ON \
               -DUSE_SYSTEM_PSL=ON \
@@ -1263,6 +1377,7 @@ jobs:
             pkg_add -I -v \
               curl \
               cmake \
+              fast-float \
               fmt \
               gettext-tools \
               gtar-- \
@@ -1297,6 +1412,7 @@ jobs:
               -DRUN_CLANG_TIDY=OFF \
               -DUSE_SYSTEM_DEFLATE=ON \
               -DUSE_SYSTEM_EVENT2=OFF `# Re-enable after our CMake build switched to event-core + event-extra` \
+              -DUSE_SYSTEM_FAST_FLOAT=ON \
               -DUSE_SYSTEM_MINIUPNPC=ON \
               -DUSE_SYSTEM_NATPMP=ON \
               -DUSE_SYSTEM_PSL=ON
@@ -1345,6 +1461,7 @@ jobs:
             /usr/sbin/pkg_add -u \
               curl \
               cmake \
+              fast_float \
               fmtlib \
               gettext-tools \
               `[ '${{ needs.what-to-make.outputs.make-gtk }}' = 'true' ] && echo gtkmm4` \
@@ -1387,6 +1504,7 @@ jobs:
               -DRUN_CLANG_TIDY=OFF \
               -DUSE_SYSTEM_DEFLATE=ON \
               -DUSE_SYSTEM_EVENT2=ON \
+              -DUSE_SYSTEM_FAST_FLOAT=ON \
               -DUSE_SYSTEM_MINIUPNPC=ON \
               -DUSE_SYSTEM_PSL=ON
             cmake --build obj --config RelWithDebInfo
@@ -1433,6 +1551,7 @@ jobs:
               curl \
               cmake \
               `# dht (somehow installing dht causes the build to fail with a bunch of "/usr/local/lib/libdht.so: error: undefined reference to 'dht_*'" messages` \
+              fast_float \
               gettext \
               `[ '${{ needs.what-to-make.outputs.make-gtk }}' = 'true' ] && echo gtkmm30` \
               libb64 \
@@ -1468,6 +1587,7 @@ jobs:
               -DUSE_SYSTEM_B64=ON \
               -DUSE_SYSTEM_DEFLATE=ON \
               -DUSE_SYSTEM_EVENT2=ON \
+              -DUSE_SYSTEM_FAST_FLOAT=ON \
               -DUSE_SYSTEM_MINIUPNPC=ON \
               -DUSE_SYSTEM_NATPMP=ON \
               -DUSE_SYSTEM_PSL=ON
