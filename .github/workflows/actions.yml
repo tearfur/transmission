@@ -760,6 +760,7 @@ jobs:
             -DUSE_SYSTEM_DHT=OFF \
             -DUSE_SYSTEM_FAST_FLOAT=OFF \
             -DUSE_SYSTEM_FMT=OFF \
+            -DUSE_SYSTEM_GTEST=OFF \
             -DUSE_SYSTEM_MINIUPNPC=OFF \
             -DUSE_SYSTEM_NATPMP=OFF \
             -DUSE_SYSTEM_UTP=OFF \
@@ -838,6 +839,7 @@ jobs:
             -DUSE_SYSTEM_DHT=OFF \
             -DUSE_SYSTEM_FAST_FLOAT=OFF \
             -DUSE_SYSTEM_FMT=OFF \
+            -DUSE_SYSTEM_GTEST=OFF \
             -DUSE_SYSTEM_MINIUPNPC=OFF \
             -DUSE_SYSTEM_NATPMP=OFF \
             -DUSE_SYSTEM_UTP=OFF \
@@ -886,6 +888,7 @@ jobs:
             libcurl4-openssl-dev \
             libdeflate-dev \
             libevent-dev \
+            libgtest-dev \
             libminiupnpc-dev \
             libnatpmp-dev \
             libpsl-dev \
@@ -930,6 +933,7 @@ jobs:
             -DUSE_SYSTEM_B64=ON \
             -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
+            -DUSE_SYSTEM_GTEST=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON \
             -DUSE_SYSTEM_NATPMP=ON \
             -DUSE_SYSTEM_PSL=ON \
@@ -977,6 +981,7 @@ jobs:
             libevent-dev \
             libfast-float-dev \
             libfmt-dev \
+            libgtest-dev \
             libminiupnpc-dev \
             libnatpmp-dev \
             libpsl-dev \
@@ -1025,6 +1030,7 @@ jobs:
             -DUSE_SYSTEM_EVENT2=ON \
             -DUSE_SYSTEM_FAST_FLOAT=ON \
             -DUSE_SYSTEM_FMT=ON \
+            -DUSE_SYSTEM_GTEST=ON \
             -DUSE_SYSTEM_MINIUPNPC=ON \
             -DUSE_SYSTEM_NATPMP=ON \
             -DUSE_SYSTEM_PSL=ON \
@@ -1393,6 +1399,7 @@ jobs:
               dht \
               fast_float \
               gettext \
+              googletest \
               `[ '${{ needs.what-to-make.outputs.make-gtk }}' = 'true' ] && echo gtkmm30` \
               libb64 \
               libdeflate \
@@ -1435,6 +1442,7 @@ jobs:
               -DUSE_SYSTEM_EVENT2=ON \
               -DUSE_SYSTEM_FAST_FLOAT=ON \
               -DUSE_SYSTEM_FMT=ON \
+              -DUSE_SYSTEM_GTEST=ON \
               -DUSE_SYSTEM_MINIUPNPC=ON \
               -DUSE_SYSTEM_NATPMP=ON \
               -DUSE_SYSTEM_PSL=ON \
@@ -1489,6 +1497,7 @@ jobs:
               fmt \
               gettext-tools \
               gtar-- \
+              gtest \
               `[ '${{ needs.what-to-make.outputs.make-gtk }}' = 'true' ] && echo gtkmm40` \
               libdeflate \
               libevent \
@@ -1524,6 +1533,7 @@ jobs:
               -DUSE_SYSTEM_EVENT2=OFF `# Re-enable after our CMake build switched to event-core + event-extra` \
               -DUSE_SYSTEM_FAST_FLOAT=ON \
               -DUSE_SYSTEM_FMT=ON \
+              -DUSE_SYSTEM_GTEST=ON \
               -DUSE_SYSTEM_MINIUPNPC=ON \
               -DUSE_SYSTEM_NATPMP=ON \
               -DUSE_SYSTEM_PSL=ON \
@@ -1577,6 +1587,7 @@ jobs:
               fast_float \
               fmtlib \
               gettext-tools \
+              googletest \
               `[ '${{ needs.what-to-make.outputs.make-gtk }}' = 'true' ] && echo gtkmm4` \
               libdeflate \
               libevent \
@@ -1621,6 +1632,7 @@ jobs:
               -DUSE_SYSTEM_EVENT2=ON \
               -DUSE_SYSTEM_FAST_FLOAT=ON \
               -DUSE_SYSTEM_FMT=ON \
+              -DUSE_SYSTEM_GTEST=ON \
               -DUSE_SYSTEM_MINIUPNPC=ON \
               -DUSE_SYSTEM_PSL=ON \
               -DUSE_SYSTEM_RAPIDJSON=ON \
@@ -1671,6 +1683,7 @@ jobs:
               `# dht (somehow installing dht causes the build to fail with a bunch of "/usr/local/lib/libdht.so: error: undefined reference to 'dht_*'" messages` \
               fast_float \
               gettext \
+              googletest \
               `[ '${{ needs.what-to-make.outputs.make-gtk }}' = 'true' ] && echo gtkmm30` \
               libb64 \
               libdeflate \
@@ -1709,6 +1722,7 @@ jobs:
               -DUSE_SYSTEM_EVENT2=ON \
               -DUSE_SYSTEM_FAST_FLOAT=ON \
               -DUSE_SYSTEM_FMT=ON \
+              -DUSE_SYSTEM_GTEST=ON \
               -DUSE_SYSTEM_MINIUPNPC=ON \
               -DUSE_SYSTEM_NATPMP=ON \
               -DUSE_SYSTEM_PSL=ON \
