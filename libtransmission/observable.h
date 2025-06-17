@@ -104,8 +104,6 @@ private:
         TR_ASSERT(n_removed == 1U);
     }
 
-    // TODO: Re-enable after setting readability-identifier-naming.PrivateMemberSuffix to _
-    // NOLINTNEXTLINE(readability-identifier-naming)
     static auto inline next_key_ = Key{ 1U };
     small::map<Key, Observer, 4U> observers_;
 };
