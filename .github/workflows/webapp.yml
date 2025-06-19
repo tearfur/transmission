@@ -2,13 +2,13 @@ name: webapp
 on:
   push:
     branches:
-      - 'main'
+      - 'post-d6e78d1'
     paths-ignore:
       - 'docs/**'
       - '.github/**'
   pull_request:
     branches:
-      - 'main'
+      - 'post-d6e78d1'
     paths-ignore:
       - 'docs/**'
       - '.github/**'
@@ -17,21 +17,21 @@ jobs:
     runs-on: ubuntu-22.04
     outputs:
       test-style: ${{ steps.check-diffs.outputs.web-changed == '1' }}
-      test-generated-files: ${{ steps.check-diffs.outputs.web-changed == '1' && steps.check-main-push.outputs.is-main-push == '0'}}
-      update-generated-files: ${{ steps.check-diffs.outputs.web-changed == '1' && steps.check-main-push.outputs.is-main-push == '1'}}
+      test-generated-files: ${{ steps.check-diffs.outputs.web-changed == '1' && steps.check-default-push.outputs.is-default-push == '0'}}
+      update-generated-files: ${{ steps.check-diffs.outputs.web-changed == '1' && steps.check-default-push.outputs.is-default-push == '1'}}
     steps:
       - name: Get source
         uses: actions/checkout@v4
         with:
           fetch-depth: 2 # >1 needed for merge base
-      - name: Check push-to-main
-        id: check-main-push
+      - name: Check push-to-default
+        id: check-default-push
         run: |
           set -x # echo all executed commands to the terminal
-          if [ "$GITHUB_EVENT_NAME" = 'push' ] && [ "$GITHUB_REF_NAME" = 'main' ]; then
-            echo is-main-push=1 >> "$GITHUB_OUTPUT"
+          if [ "$GITHUB_EVENT_NAME" = 'push' ] && [ "$GITHUB_REF_NAME" = '${{ github.event.repository.default_branch }}' ]; then
+            echo is-default-push=1 >> "$GITHUB_OUTPUT"
           else
-            echo is-main-push=0 >> "$GITHUB_OUTPUT"
+            echo is-default-push=0 >> "$GITHUB_OUTPUT"
           fi
       - name: Check for diffs
         id: check-diffs
@@ -40,7 +40,7 @@ jobs:
           function get_changes() { # name, paths...
             local name="$1"
             shift
-            if [ "$GITHUB_EVENT_NAME" = 'push' ] && [ "$GITHUB_REF_NAME" = 'main' ]; then
+            if [ "$GITHUB_EVENT_NAME" = 'push' ] && [ "$GITHUB_REF_NAME" = '${{ github.event.repository.default_branch }}' ]; then
               DIFF_TARGET='--name-only HEAD^'
             else
               git fetch --depth=1 origin "$GITHUB_BASE_REF"
