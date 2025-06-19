@@ -2,12 +2,12 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "post-d6e78d1" ]
     paths-ignore:
       - 'docs/**'
       - '.github/**'
   pull_request:
-    branches: [ "main" ]
+    branches: [ "post-d6e78d1" ]
     paths-ignore:
       - 'docs/**'
       - '.github/**'

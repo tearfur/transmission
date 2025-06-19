@@ -2,38 +2,38 @@ name: Sanity
 on:
   push:
     branches:
-      - 'main'
+      - 'post-d6e78d1'
   pull_request:
     branches:
-      - 'main'
+      - 'post-d6e78d1'
 env:
   GTEST_OUTPUT: xml:./
 jobs:
   what-to-make:
     runs-on: ubuntu-22.04
     outputs:
-      make-android: ${{ steps.check-main-push.outputs.is-main-push == '1' || steps.check-diffs.outputs.android-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
-      make-cli: ${{ steps.check-main-push.outputs.is-main-push == '1' || steps.check-diffs.outputs.cli-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
-      make-daemon: ${{ steps.check-main-push.outputs.is-main-push == '1' || steps.check-diffs.outputs.daemon-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
-      make-dist: ${{ steps.check-main-push.outputs.is-main-push == '1' || steps.check-diffs.outputs.dist-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
-      make-docs: ${{ steps.check-main-push.outputs.is-main-push == '1' || steps.check-diffs.outputs.docs-changed == '1' }}
-      make-gtk: ${{ steps.check-main-push.outputs.is-main-push == '1' || steps.check-diffs.outputs.gtk-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
-      make-mac: ${{ steps.check-main-push.outputs.is-main-push == '1' || steps.check-diffs.outputs.mac-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
-      make-qt: ${{ steps.check-main-push.outputs.is-main-push == '1' || steps.check-diffs.outputs.qt-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
-      make-source-tarball: ${{ steps.check-main-push.outputs.is-main-push == '1' || steps.check-diffs.outputs.any-code-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
-      make-tests: ${{ steps.check-main-push.outputs.is-main-push == '1' || steps.check-diffs.outputs.tests-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
-      make-utils: ${{ steps.check-main-push.outputs.is-main-push == '1' || steps.check-diffs.outputs.utils-changed == '1' || steps.check-diffs.outputs.tests-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
-      make-web: ${{ steps.check-main-push.outputs.is-main-push == '1' || steps.check-diffs.outputs.web-changed == '1' }}
-      test-style: ${{ steps.check-main-push.outputs.is-main-push == '1' || steps.check-diffs.outputs.our-code-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
+      make-android: ${{ steps.check-default-push.outputs.is-default-push == '1' || steps.check-diffs.outputs.android-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
+      make-cli: ${{ steps.check-default-push.outputs.is-default-push == '1' || steps.check-diffs.outputs.cli-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
+      make-daemon: ${{ steps.check-default-push.outputs.is-default-push == '1' || steps.check-diffs.outputs.daemon-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
+      make-dist: ${{ steps.check-default-push.outputs.is-default-push == '1' || steps.check-diffs.outputs.dist-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
+      make-docs: ${{ steps.check-default-push.outputs.is-default-push == '1' || steps.check-diffs.outputs.docs-changed == '1' }}
+      make-gtk: ${{ steps.check-default-push.outputs.is-default-push == '1' || steps.check-diffs.outputs.gtk-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
+      make-mac: ${{ steps.check-default-push.outputs.is-default-push == '1' || steps.check-diffs.outputs.mac-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
+      make-qt: ${{ steps.check-default-push.outputs.is-default-push == '1' || steps.check-diffs.outputs.qt-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
+      make-source-tarball: ${{ steps.check-default-push.outputs.is-default-push == '1' || steps.check-diffs.outputs.any-code-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
+      make-tests: ${{ steps.check-default-push.outputs.is-default-push == '1' || steps.check-diffs.outputs.tests-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
+      make-utils: ${{ steps.check-default-push.outputs.is-default-push == '1' || steps.check-diffs.outputs.utils-changed == '1' || steps.check-diffs.outputs.tests-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
+      make-web: ${{ steps.check-default-push.outputs.is-default-push == '1' || steps.check-diffs.outputs.web-changed == '1' }}
+      test-style: ${{ steps.check-default-push.outputs.is-default-push == '1' || steps.check-diffs.outputs.our-code-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
     steps:
-      - name: Check Push to Main Branch
-        id: check-main-push
+      - name: Check Push to Default Branch
+        id: check-default-push
         run: |
           set -x
-          if [ "$GITHUB_EVENT_NAME" = 'push' ] && [ "$GITHUB_REF_NAME" = 'main' ]; then
-            echo is-main-push=1 >> "$GITHUB_OUTPUT"
+          if [ "$GITHUB_EVENT_NAME" = 'push' ] && [ "$GITHUB_REF_NAME" = '${{ github.event.repository.default_branch }}' ]; then
+            echo is-default-push=1 >> "$GITHUB_OUTPUT"
           else
-            echo is-main-push=0 >> "$GITHUB_OUTPUT"
+            echo is-default-push=0 >> "$GITHUB_OUTPUT"
           fi
       - name: Get Source
         id: get-source
@@ -47,7 +47,7 @@ jobs:
         run: |
           set +e
           cd src
-          MERGE_BASE=`git merge-base origin/main HEAD`
+          MERGE_BASE=`git merge-base origin/${{ github.event.repository.default_branch }} HEAD`
           function get_changes() { # name, paths...
             local name="$1"
             shift
