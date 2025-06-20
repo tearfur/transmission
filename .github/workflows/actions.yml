@@ -89,7 +89,7 @@ jobs:
           wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
           sudo add-apt-repository "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-20 main"
           sudo apt update
-          sudo apt install -y clang-format-20 npm
+          sudo apt install -y clang-format-20
       - name: Get NPM
         uses: actions/setup-node@v4
         with:
