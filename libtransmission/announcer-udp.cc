@@ -384,22 +384,62 @@ struct tau_tracker
 
     void upkeep(bool timeout_reqs = true)
     {
+        static size_t num_exec = 0;
+        ++num_exec;
         time_t const now = tr_time();
 
         for (ipp_t ipp = 0; ipp < NUM_TR_AF_INET_TYPES; ++ipp)
         {
+            fmt::print(
+                stderr,
+                "[{}] {} DNS for {} is",
+                num_exec,
+                tr_ip_protocol_to_sv(static_cast<tr_address_type>(ipp)),
+                host);
             // do we have a DNS request that's ready?
-            if (auto& dns = addr_pending_dns_[ipp]; dns && dns->wait_for(0ms) == std::future_status::ready)
+            if (auto& dns = addr_pending_dns_[ipp]; dns)
             {
-                addr_[ipp] = dns->get();
-                dns.reset();
-                addr_expires_at_[ipp] = now + DnsRetryIntervalSecs;
+                fmt::print(stderr, " active and");
+                if (dns->wait_for(0ms) == std::future_status::ready)
+                {
+                    fmt::print(stderr, " ready\n");
+                    addr_[ipp] = dns->get();
+                    if (addr_[ipp])
+                    {
+                        fmt::print(
+                            stderr,
+                            "[{}] {} resolved to {}\n",
+                            num_exec,
+                            host,
+                            tr_socket_address::from_sockaddr(reinterpret_cast<sockaddr*>(&addr_[ipp]->first))->display_name());
+                    }
+                    else
+                    {
+                        fmt::print(
+                            stderr,
+                            "[{}] failed to resolve {} in {}\n",
+                            num_exec,
+                            host,
+                            tr_ip_protocol_to_sv(static_cast<tr_address_type>(ipp)));
+                    }
+                    dns.reset();
+                    addr_expires_at_[ipp] = now + DnsRetryIntervalSecs;
+                }
+                else
+                {
+                    fmt::print(stderr, " not ready\n");
+                }
+            }
+            else
+            {
+                fmt::print(stderr, " not active\n");
             }
         }
 
         // are there any tracker requests pending?
         if (is_idle())
         {
+            fmt::print(stderr, "[{}] {} is idle\n", num_exec, host);
             return;
         }
 
@@ -408,6 +448,12 @@ struct tau_tracker
             // update the addr if our lookup is past its shelf date
             if (auto& dns = addr_pending_dns_[ipp]; !dns && addr_expires_at_[ipp] <= now)
             {
+                fmt::print(
+                    stderr,
+                    "[{}] launch {} lookup for {}\n",
+                    num_exec,
+                    tr_ip_protocol_to_sv(static_cast<tr_address_type>(ipp)),
+                    host);
                 addr_[ipp].reset();
                 dns = std::async(
                     std::launch::async,
@@ -419,6 +465,7 @@ struct tau_tracker
         // are there any dns requests pending?
         if (is_dns_pending())
         {
+            fmt::print(stderr, "[{}] DNS for {} pending\n", num_exec, host);
             return;
         }
 
@@ -435,6 +482,15 @@ struct tau_tracker
                     connection_expiration_time[ipp],
                     now,
                     conn_at));
+            fmt::print(
+                stderr,
+                "[{}] {} connected {} ({} {}) -- connecting_at {}\n",
+                num_exec,
+                tr_ip_protocol_to_sv(ipp_enum),
+                is_connected(ipp_enum, now),
+                connection_expiration_time[ipp],
+                now,
+                conn_at);
 
             // also need a valid connection ID...
             if (auto const& addr = addr_[ipp]; addr && !is_connected(ipp_enum, now) && conn_at == 0)
@@ -447,6 +503,12 @@ struct tau_tracker
                 logtrace(
                     log_name(),
                     fmt::format("Trying to connect {}. Transaction ID is {}", tr_ip_protocol_to_sv(ipp_enum), conn_transc_id));
+                fmt::print(
+                    stderr,
+                    "[{}] Trying to connect {}. Transaction ID is {}\n",
+                    num_exec,
+                    tr_ip_protocol_to_sv(ipp_enum),
+                    conn_transc_id);
 
                 auto buf = PayloadBuffer{};
                 buf.add_uint64(0x41727101980LL);
@@ -499,6 +561,8 @@ private:
         hints.ai_protocol = IPPROTO_UDP;
         hints.ai_socktype = SOCK_DGRAM;
 
+        fmt::print(stderr, "{} lookup start: {}\n", tr_ip_protocol_to_sv(ip_protocol), host);
+
         addrinfo* info = nullptr;
         auto const szhost = tr_urlbuf{ host_lookup };
         if (int const rc = getaddrinfo(szhost.c_str(), std::data(szport), &hints, &info); rc != 0)
@@ -512,7 +576,15 @@ private:
                     fmt::arg("ip_protocol", tr_ip_protocol_to_sv(ip_protocol)),
                     fmt::arg("error", gai_strerror(rc)),
                     fmt::arg("error_code", static_cast<int>(rc))));
-            return {};
+            fmt::print(
+                stderr,
+                fmt::runtime(_("Couldn't look up '{address}:{port}' in {ip_protocol}: {error} ({error_code})")),
+                fmt::arg("address", host),
+                fmt::arg("port", port.host()),
+                fmt::arg("ip_protocol", tr_ip_protocol_to_sv(ip_protocol)),
+                fmt::arg("error", gai_strerror(rc)),
+                fmt::arg("error_code", static_cast<int>(rc)));
+            return std::nullopt;
         }
         auto const info_uniq = std::unique_ptr<addrinfo, decltype(&freeaddrinfo)>{ info, freeaddrinfo };
 
@@ -527,8 +599,16 @@ private:
                     fmt::arg("address", host),
                     fmt::arg("port", port.host()),
                     fmt::arg("ip_protocol", tr_ip_protocol_to_sv(ip_protocol))));
-            return {};
+            fmt::print(
+                stderr,
+                "Couldn't look up '{address}:{port}' in {ip_protocol}: got invalid address",
+                fmt::arg("address", host),
+                fmt::arg("port", port.host()),
+                fmt::arg("ip_protocol", tr_ip_protocol_to_sv(ip_protocol)));
+            return std::nullopt;
         }
+
+        fmt::print(stderr, "{} lookup end: {}\n", tr_ip_protocol_to_sv(ip_protocol), host);
 
         logdbg(log_name(), fmt::format("{} DNS lookup succeeded", tr_ip_protocol_to_sv(ip_protocol)));
         return socket_address->to_sockaddr();

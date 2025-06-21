@@ -1081,7 +1081,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        release: [ 14.3, 13.5 ]
+        release: [ 14.3 ]
     runs-on: ubuntu-latest
     steps:
       - name: Show Configuration
@@ -1114,12 +1114,6 @@ jobs:
               miniupnpc \
               ninja \
               pkgconf
-            if [ '${{ needs.what-to-make.outputs.make-gtk }}' = 'true' ]; then
-              pkg install -y gtkmm30
-            fi
-            if [ '${{ needs.what-to-make.outputs.make-qt }}' = 'true' ]; then
-              pkg install -y qt6-svg qt6-tools
-            fi
           run: |
             mkdir src && tar xf transmission*.tar.* -C src --strip-components 1
             cmake \
@@ -1130,8 +1124,8 @@ jobs:
               -DCMAKE_INSTALL_PREFIX=pfx \
               -DENABLE_CLI=${{ (needs.what-to-make.outputs.make-cli == 'true') && 'ON' || 'OFF' }} \
               -DENABLE_DAEMON=${{ (needs.what-to-make.outputs.make-daemon == 'true') && 'ON' || 'OFF' }} \
-              -DENABLE_GTK=${{ (needs.what-to-make.outputs.make-gtk == 'true') && 'ON' || 'OFF' }} \
-              -DENABLE_QT=${{ (needs.what-to-make.outputs.make-qt == 'true') && 'ON' || 'OFF' }} \
+              -DENABLE_GTK=OFF \
+              -DENABLE_QT=OFF \
               -DENABLE_TESTS=${{ (needs.what-to-make.outputs.make-tests == 'true') && 'ON' || 'OFF' }} \
               -DENABLE_UTILS=${{ (needs.what-to-make.outputs.make-utils == 'true') && 'ON' || 'OFF' }} \
               -DREBUILD_WEB=${{ (needs.what-to-make.outputs.make-web == 'true') && 'ON' || 'OFF' }} \
@@ -1139,7 +1133,7 @@ jobs:
               -DRUN_CLANG_TIDY=OFF
             cmake --build obj --config RelWithDebInfo
             if [ '${{ needs.what-to-make.outputs.make-tests }}' = 'true' ]; then
-              cmake -E chdir obj ctest -j $(nproc) --build-config RelWithDebInfo --output-on-failure
+              cmake -E chdir obj ctest -j $(nproc) --build-config RelWithDebInfo --output-on-failure -R 'canAnnounceIPv[46]'
             fi
             cmake --install obj --config RelWithDebInfo --strip
       - uses: actions/upload-artifact@v4
