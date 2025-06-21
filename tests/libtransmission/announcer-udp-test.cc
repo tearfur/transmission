@@ -766,9 +766,13 @@ TEST_F(AnnouncerUdpTest, canAnnounceIPv6)
     auto response = std::optional<tr_announce_response>{};
     announcer->announce(request, [&response](tr_announce_response const& resp) { response = resp; });
 
+    fmt::print(stderr, "wait for connection request\n");
+
     // Announcer will request a connection. Verify and grant the request
     auto connect_transaction_id = parseConnectionRequest(waitForAnnouncerToSendMessage(mediator));
     auto const connection_id = sendConnectionResponse(*announcer, connect_transaction_id, from_ptr, fromlen);
+
+    fmt::print(stderr, "wait for announce request\n");
 
     // The announcer should have sent a UDP announce request.
     // Inspect that request for validity.
