@@ -148,10 +148,6 @@ jobs:
             libpsl-dev \
             libssl-dev \
             ninja-build
-      - name: Get NPM
-        uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
       - name: Get Source
         uses: actions/checkout@v4
         with:
