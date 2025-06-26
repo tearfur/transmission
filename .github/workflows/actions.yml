@@ -1080,7 +1080,8 @@ jobs:
         release: [ 14.3, 13.4 ]
         arch:
           - x86_64
-          - aarch64
+          # aarch64 works, but takes 2+ hours instead of the usual 10-20 minutes
+          # - aarch64
         crypto: [ openssl, wolfssl, mbedtls ]
     runs-on: ubuntu-latest
     steps:
@@ -1163,7 +1164,8 @@ jobs:
         release: [ 7.7 ]
         arch:
           - x86_64
-          - aarch64
+          # aarch64 works, but takes 4+ hours instead of the usual 10-20 minutes
+          # - aarch64
     runs-on: ubuntu-latest
     steps:
       - name: Show Configuration
@@ -1239,7 +1241,8 @@ jobs:
         release: [ 10.1 ]
         arch:
           - x86_64
-          - aarch64
+          # aarch64 works, but takes 2+ hours instead of the usual 10-20 minutes
+          # - aarch64
     runs-on: ubuntu-latest
     steps:
       - name: Show Configuration
