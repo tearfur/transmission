@@ -19,7 +19,7 @@ jobs:
       make-dist: ${{ steps.check-default-push.outputs.is-default-push == '1' || steps.check-diffs.outputs.dist-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
       make-docs: ${{ steps.check-default-push.outputs.is-default-push == '1' || steps.check-diffs.outputs.docs-changed == '1' }}
       make-gtk: ${{ steps.check-default-push.outputs.is-default-push == '1' || steps.check-diffs.outputs.gtk-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
-      make-mac: ${{ steps.check-default-push.outputs.is-default-push == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
+      make-mac: ${{ steps.check-default-push.outputs.is-default-push == '1' || steps.check-diffs.outputs.core-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
       make-qt: ${{ steps.check-default-push.outputs.is-default-push == '1' || steps.check-diffs.outputs.qt-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
       make-source-tarball: ${{ steps.check-default-push.outputs.is-default-push == '1' || steps.check-diffs.outputs.any-code-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
       make-tests: ${{ steps.check-default-push.outputs.is-default-push == '1' || steps.check-diffs.outputs.tests-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
