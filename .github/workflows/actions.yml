@@ -24,7 +24,7 @@ jobs:
       make-source-tarball: ${{ steps.check-default-push.outputs.is-default-push == '1' || steps.check-diffs.outputs.any-code-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
       make-tests: ${{ steps.check-default-push.outputs.is-default-push == '1' || steps.check-diffs.outputs.tests-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
       make-utils: ${{ steps.check-default-push.outputs.is-default-push == '1' || steps.check-diffs.outputs.utils-changed == '1' || steps.check-diffs.outputs.tests-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
-      make-web: ${{ steps.check-default-push.outputs.is-default-push == '1' || steps.check-diffs.outputs.web-changed == '1' }}
+      make-web: ${{ steps.check-default-push.outputs.is-default-push == '1' || steps.check-diffs.outputs.web-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
       test-style: ${{ steps.check-default-push.outputs.is-default-push == '1' || steps.check-diffs.outputs.our-code-changed == '1' || steps.check-diffs.outputs.ci-actions-changed == '1' }}
     steps:
       - name: Check Push to Default Branch
@@ -1361,7 +1361,6 @@ jobs:
               libpsl \
               miniupnpc \
               ninja \
-              `[ '${{ needs.what-to-make.outputs.make-web }}' = 'true' ] && echo npm` \
               pkgconf \
               `[ '${{ needs.what-to-make.outputs.make-qt }}' = 'true' ] && echo qt6-svg qt6-tools`
           run: |
@@ -1380,7 +1379,7 @@ jobs:
               -DENABLE_QT=${{ (needs.what-to-make.outputs.make-qt == 'true') && 'ON' || 'OFF' }} \
               -DENABLE_TESTS=${{ (needs.what-to-make.outputs.make-tests == 'true') && 'ON' || 'OFF' }} \
               -DENABLE_UTILS=${{ (needs.what-to-make.outputs.make-utils == 'true') && 'ON' || 'OFF' }} \
-              -DREBUILD_WEB=${{ (needs.what-to-make.outputs.make-web == 'true') && 'ON' || 'OFF' }} \
+              -DREBUILD_WEB=OFF `# Installing esbuild via npm is not supported on DragonFlyBSD, the full list of supported platforms can be found at https://esbuild.github.io/getting-started/#download-a-build` \
               -DENABLE_DEPRECATED=ON \
               -DENABLE_WERROR=ON \
               -DRUN_CLANG_TIDY=OFF
