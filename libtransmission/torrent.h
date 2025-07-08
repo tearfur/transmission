@@ -95,7 +95,7 @@ struct tr_torrent
         friend class libtransmission::test::RenameTest_singleFilenameTorrent_Test;
         friend struct tr_torrent;
 
-        ResumeHelper(tr_torrent& tor)
+        explicit ResumeHelper(tr_torrent& tor)
             : tor_{ tor }
         {
         }
@@ -758,6 +758,10 @@ struct tr_torrent
     {
         if (is_sequential != sequential_download_)
         {
+            if (is_sequential)
+            {
+                session->flush_torrent_files(id());
+            }
             sequential_download_ = is_sequential;
             sequential_download_changed_.emit(this, is_sequential);
             set_dirty();
@@ -982,7 +986,7 @@ struct tr_torrent
         return session->torrent_queue().get_pos(id());
     }
 
-    void set_queue_position(size_t new_pos)
+    void set_queue_position(size_t new_pos) // NOLINT(readability-make-member-function-const)
     {
         session->torrent_queue().set_pos(id(), new_pos);
     }
@@ -1247,10 +1251,7 @@ private:
 
     constexpr void bump_date_changed(time_t when)
     {
-        if (date_changed_ < when)
-        {
-            date_changed_ = when;
-        }
+        date_changed_ = std::max(date_changed_, when);
     }
 
     void set_verify_state(VerifyState state);
@@ -1411,7 +1412,7 @@ private:
 
     uint16_t idle_limit_minutes_ = 0;
 
-    uint16_t max_connected_peers_ = TR_DEFAULT_PEER_LIMIT_TORRENT;
+    uint16_t max_connected_peers_ = TrDefaultPeerLimitTorrent;
 
     bool is_deleting_ = false;
     bool is_dirty_ = false;

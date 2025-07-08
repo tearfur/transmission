@@ -18,7 +18,7 @@
 #include <string_view>
 #include <vector>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 
 #include <libtransmission/file.h>
 #include <libtransmission/utils.h> // for tr_file_save()
@@ -44,9 +44,7 @@ public:
         return iter != std::end(icons_) ? &iter->second : nullptr;
     }
 
-    void load( //
-        std::string_view url_in,
-        IconFunc callback = [](Icon const&) { /*default callback is a no-op */ })
+    void load(std::string_view url_in, IconFunc callback = [](Icon const&) { /*default callback is a no-op */ })
     {
         std::call_once(scan_once_flag_, &FaviconCache::scan_file_cache, this);
 

@@ -7,6 +7,7 @@
 #include <array>
 #include <cctype> /* isspace */
 #include <cmath> // floor
+#include <chrono>
 #include <cstdint> // int64_t
 #include <cstdio>
 #include <cstdlib>
@@ -24,7 +25,7 @@
 #include <event2/buffer.h>
 
 #include <fmt/chrono.h>
-#include <fmt/core.h>
+#include <fmt/format.h>
 
 #include <libtransmission/transmission.h>
 
@@ -48,7 +49,7 @@ using namespace libtransmission::Values;
 
 namespace
 {
-auto constexpr DefaultPort = uint16_t{ TR_DEFAULT_RPC_PORT };
+auto constexpr DefaultPort = uint16_t{ TrDefaultRpcPort };
 char constexpr DefaultHost[] = "localhost";
 char constexpr DefaultUrl[] = TR_DEFAULT_RPC_URL_STR "rpc/";
 
@@ -693,7 +694,7 @@ auto constexpr FilesKeys = std::array<tr_quark, 4>{
 };
 static_assert(FilesKeys[std::size(FilesKeys) - 1] != tr_quark{});
 
-auto constexpr DetailsKeys = std::array<tr_quark, 55>{
+auto constexpr DetailsKeys = std::array<tr_quark, 56>{
     TR_KEY_activityDate,
     TR_KEY_addedDate,
     TR_KEY_bandwidthPriority,
@@ -726,6 +727,7 @@ auto constexpr DetailsKeys = std::array<tr_quark, 55>{
     TR_KEY_peersGettingFromUs,
     TR_KEY_peersSendingToUs,
     TR_KEY_peer_limit,
+    TR_KEY_percentDone,
     TR_KEY_pieceCount,
     TR_KEY_pieceSize,
     TR_KEY_rateDownload,
@@ -883,7 +885,7 @@ template<size_t N>
 std::string_view format_date(std::array<char, N>& buf, time_t now)
 {
     auto begin = std::data(buf);
-    auto end = fmt::format_to_n(begin, N, "{:%a %b %d %T %Y}", fmt::localtime(now)).out;
+    auto end = fmt::format_to_n(begin, N, "{:%a %b %d %T %Y}", *std::localtime(&now)).out;
     return { begin, static_cast<size_t>(end - begin) };
 }
 
@@ -941,7 +943,7 @@ void print_details(tr_variant::Map const& map)
             {
                 if (auto sv = it->value_if<std::string_view>(); sv)
                 {
-                    fmt::print("{:s}{:s}", it == begin ? ", " : "", *sv);
+                    fmt::print("{:s}{:s}", it != begin ? ", " : "", *sv);
                 }
             }
 
@@ -968,9 +970,9 @@ void print_details(tr_variant::Map const& map)
             fmt::print("  Sequential Download: {:s}\n", *b ? "Yes" : "No");
         }
 
-        if (auto i = t->value_if<int64_t>(TR_KEY_sizeWhenDone), j = t->value_if<int64_t>(TR_KEY_leftUntilDone); i && j)
+        if (auto i = t->value_if<double>(TR_KEY_percentDone); i)
         {
-            fmt::print("  Percent Done: {:s}%\n", strlpercent(100.0 * (*i - *j) / *i));
+            fmt::print("  Percent Done: {:s}%\n", strlpercent(100.0 * *i));
         }
 
         if (auto i = t->value_if<int64_t>(TR_KEY_eta); i)

@@ -1,4 +1,7 @@
 ---
+HeaderFilterRegex: .*/libtransmission/.*
+
+# TODO: Enable `portability-template-virtual-member-function` after https://github.com/llvm/llvm-project/issues/139031 is fixed
 # PRs welcome to fix & re-enable any of these explicitly-disabled checks
 Checks: >
   bugprone-*,
@@ -8,6 +11,7 @@ Checks: >
   -bugprone-narrowing-conversions,
   cert-*,
   -cert-err58-cpp,
+  -cert-int09-c,
   clang-analyzer-*,
   -clang-analyzer-optin.core.EnumCastOutOfRange,
   cppcoreguidelines-avoid-do-while,
@@ -32,15 +36,19 @@ Checks: >
   performance-*,
   -performance-move-const-arg,
   portability-*,
+  -portability-template-virtual-member-function,
   readability-*,
+  -readability-enum-initial-value,
   -readability-function-cognitive-complexity,
   -readability-identifier-length,
   -readability-magic-numbers,
   -readability-qualified-auto,
 
 CheckOptions:
-  - { key: cppcoreguidelines-avoid-do-while.IgnoreMacros,          value: true       }
-  - { key: readability-identifier-naming.ConstexprVariableCase,    value: CamelCase  }
-  - { key: readability-identifier-naming.ParameterCase,            value: lower_case }
-  - { key: readability-identifier-naming.VariableCase,             value: lower_case }
+  - { key: cppcoreguidelines-avoid-do-while.IgnoreMacros,                    value: true       }
+  - { key: cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor,  value: true       }
+  - { key: readability-identifier-naming.ConstexprVariableCase,              value: CamelCase  }
+  - { key: readability-identifier-naming.ParameterCase,                      value: lower_case }
+  - { key: readability-identifier-naming.VariableCase,                       value: lower_case }
+  - { key: readability-implicit-bool-conversion.UseUpperCaseLiteralSuffix,   value: true       }
 
