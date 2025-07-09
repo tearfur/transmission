@@ -27,7 +27,7 @@
 
 #include <event2/util.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 
 #include "libtransmission/log.h"
 #include "libtransmission/net.h"
@@ -188,10 +188,11 @@ tr_socket_t createSocket(int domain, int type)
     {
         if (sockerrno != EAFNOSUPPORT)
         {
-            tr_logAddWarn(fmt::format(
-                fmt::runtime(_("Couldn't create socket: {error} ({error_code})")),
-                fmt::arg("error", tr_net_strerror(sockerrno)),
-                fmt::arg("error_code", sockerrno)));
+            tr_logAddWarn(
+                fmt::format(
+                    fmt::runtime(_("Couldn't create socket: {error} ({error_code})")),
+                    fmt::arg("error", tr_net_strerror(sockerrno)),
+                    fmt::arg("error_code", sockerrno)));
         }
 
         return TR_BAD_SOCKET;
@@ -265,12 +266,13 @@ tr_socket_t tr_net_open_peer_socket(tr_session* session, tr_socket_address const
 
     if (bind(s, reinterpret_cast<sockaddr const*>(&source_sock), sourcelen) == -1)
     {
-        tr_logAddWarn(fmt::format(
-            fmt::runtime(_("Couldn't set source address {address} on {socket}: {error} ({error_code})")),
-            fmt::arg("address", source_addr.display_name()),
-            fmt::arg("socket", s),
-            fmt::arg("error", tr_net_strerror(sockerrno)),
-            fmt::arg("error_code", sockerrno)));
+        tr_logAddWarn(
+            fmt::format(
+                fmt::runtime(_("Couldn't set source address {address} on {socket}: {error} ({error_code})")),
+                fmt::arg("address", source_addr.display_name()),
+                fmt::arg("socket", s),
+                fmt::arg("error", tr_net_strerror(sockerrno)),
+                fmt::arg("error_code", sockerrno)));
         tr_net_close_socket(s);
         return TR_BAD_SOCKET;
     }
@@ -284,13 +286,14 @@ tr_socket_t tr_net_open_peer_socket(tr_session* session, tr_socket_address const
         if (auto const tmperrno = sockerrno;
             (tmperrno != ECONNREFUSED && tmperrno != ENETUNREACH && tmperrno != EHOSTUNREACH) || addr.is_ipv4())
         {
-            tr_logAddWarn(fmt::format(
-                fmt::runtime(_("Couldn't connect socket {socket} to {address}:{port}: {error} ({error_code})")),
-                fmt::arg("socket", s),
-                fmt::arg("address", addr.display_name()),
-                fmt::arg("port", port.host()),
-                fmt::arg("error", tr_net_strerror(tmperrno)),
-                fmt::arg("error_code", tmperrno)));
+            tr_logAddWarn(
+                fmt::format(
+                    fmt::runtime(_("Couldn't connect socket {socket} to {address}:{port}: {error} ({error_code})")),
+                    fmt::arg("socket", s),
+                    fmt::arg("address", addr.display_name()),
+                    fmt::arg("port", port.host()),
+                    fmt::arg("error", tr_net_strerror(tmperrno)),
+                    fmt::arg("error_code", tmperrno)));
         }
 
         tr_net_close_socket(s);
@@ -342,15 +345,16 @@ tr_socket_t tr_netBindTCPImpl(tr_address const& addr, tr_port port, bool suppres
 
         if (!suppress_msgs)
         {
-            tr_logAddError(fmt::format(
-                fmt::runtime(
-                    err == EADDRINUSE ?
-                        _("Couldn't bind port {port} on {address}: {error} ({error_code}) -- Is another copy of Transmission already running?") :
-                        _("Couldn't bind port {port} on {address}: {error} ({error_code})")),
-                fmt::arg("address", addr.display_name()),
-                fmt::arg("port", port.host()),
-                fmt::arg("error", tr_net_strerror(err)),
-                fmt::arg("error_code", err)));
+            tr_logAddError(
+                fmt::format(
+                    fmt::runtime(
+                        err == EADDRINUSE ?
+                            _("Couldn't bind port {port} on {address}: {error} ({error_code}) -- Is another copy of Transmission already running?") :
+                            _("Couldn't bind port {port} on {address}: {error} ({error_code})")),
+                    fmt::arg("address", addr.display_name()),
+                    fmt::arg("port", port.host()),
+                    fmt::arg("error", tr_net_strerror(err)),
+                    fmt::arg("error_code", err)));
         }
 
         tr_net_close_socket(fd);
@@ -487,7 +491,7 @@ std::pair<tr_port, std::byte const*> tr_port::from_compact(std::byte const* comp
 
 std::optional<tr_address> tr_address::from_string(std::string_view address_sv)
 {
-    auto const address_sz = tr_strbuf<char, TR_ADDRSTRLEN>{ address_sv };
+    auto const address_sz = tr_strbuf<char, TrAddrStrlen>{ address_sv };
 
     auto ss = sockaddr_storage{};
     auto sslen = int{ sizeof(ss) };
@@ -795,6 +799,16 @@ int tr_address::compare(tr_address const& that) const noexcept // <=>
     return false;
 }
 
+std::optional<tr_address> tr_address::from_ipv4_mapped() const noexcept
+{
+    if (!is_ipv4_mapped_address())
+    {
+        return {};
+    }
+
+    return from_compact_ipv4(reinterpret_cast<std::byte const*>(&addr.addr6.s6_addr) + 12).first;
+}
+
 // --- tr_socket_addrses
 
 std::string tr_socket_address::display_name(tr_address const& address, tr_port port) noexcept
@@ -814,8 +828,7 @@ std::optional<tr_socket_address> tr_socket_address::from_string(std::string_view
 {
     auto ss = sockaddr_storage{};
     auto sslen = int{ sizeof(ss) };
-    if (evutil_parse_sockaddr_port(tr_strbuf<char, TR_ADDRSTRLEN>{ sockaddr_sv }, reinterpret_cast<sockaddr*>(&ss), &sslen) !=
-        0)
+    if (evutil_parse_sockaddr_port(tr_strbuf<char, TrAddrStrlen>{ sockaddr_sv }, reinterpret_cast<sockaddr*>(&ss), &sslen) != 0)
     {
         return {};
     }

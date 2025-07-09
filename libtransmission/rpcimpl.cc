@@ -17,7 +17,7 @@
 #include <utility>
 #include <vector>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 
 #include <libdeflate.h>
 
@@ -395,10 +395,11 @@ namespace make_torrent_field_helpers
     for (size_t idx = 0U; idx != n_trackers; ++idx)
     {
         auto const tracker = tr_torrentTracker(&tor, idx);
-        auto stats_map = tr_variant::Map{ 27U };
+        auto stats_map = tr_variant::Map{ 28U };
         stats_map.try_emplace(TR_KEY_announce, tracker.announce);
         stats_map.try_emplace(TR_KEY_announceState, tracker.announceState);
         stats_map.try_emplace(TR_KEY_downloadCount, tracker.downloadCount);
+        stats_map.try_emplace(TR_KEY_downloader_count, tracker.downloader_count);
         stats_map.try_emplace(TR_KEY_hasAnnounced, tracker.hasAnnounced);
         stats_map.try_emplace(TR_KEY_hasScraped, tracker.hasScraped);
         stats_map.try_emplace(TR_KEY_host, tracker.host_and_port);
@@ -565,6 +566,7 @@ namespace make_torrent_field_helpers
     case TR_KEY_seedRatioLimit:
     case TR_KEY_seedRatioMode:
     case TR_KEY_sequential_download:
+    case TR_KEY_sequential_download_from_piece:
     case TR_KEY_sizeWhenDone:
     case TR_KEY_source:
     case TR_KEY_startDate:
@@ -659,6 +661,7 @@ namespace make_torrent_field_helpers
     case TR_KEY_seedRatioLimit: return tor.seed_ratio();
     case TR_KEY_seedRatioMode: return tor.seed_ratio_mode();
     case TR_KEY_sequential_download: return tor.is_sequential_download();
+    case TR_KEY_sequential_download_from_piece: return tor.sequential_download_from_piece();
     case TR_KEY_sizeWhenDone: return st.sizeWhenDone;
     case TR_KEY_source: return tor.source();
     case TR_KEY_startDate: return st.startDate;
@@ -870,6 +873,17 @@ char const* set_file_priorities(tr_torrent* tor, tr_priority_t priority, tr_vari
     return nullptr; // no error
 }
 
+char const* set_sequential_download_from_piece(tr_torrent& tor, tr_piece_index_t piece)
+{
+    if (piece >= tor.piece_count())
+    {
+        return "piece to sequentially download from is outside pieces range";
+    }
+
+    tor.set_sequential_download_from_piece(piece);
+    return nullptr; // no error
+}
+
 [[nodiscard]] char const* set_file_dls(tr_torrent* tor, bool wanted, tr_variant::Vector const& files_vec)
 {
     auto const [indices, errmsg] = get_file_indices(tor, files_vec);
@@ -1012,6 +1026,11 @@ char const* torrentSet(tr_session* session, tr_variant::Map const& args_in, tr_v
         if (auto const val = args_in.value_if<bool>(TR_KEY_sequential_download))
         {
             tor->set_sequential_download(*val);
+        }
+
+        if (auto const val = args_in.value_if<int64_t>(TR_KEY_sequential_download_from_piece); val && errmsg == nullptr)
+        {
+            errmsg = set_sequential_download_from_piece(*tor, *val);
         }
 
         if (auto const val = args_in.value_if<bool>(TR_KEY_downloadLimited))
@@ -1322,11 +1341,12 @@ void onMetadataFetched(tr_web::FetchResponse const& web_response)
     auto const& [status, body, primary_ip, did_connect, did_timeout, user_data] = web_response;
     auto* data = static_cast<struct add_torrent_idle_data*>(user_data);
 
-    tr_logAddTrace(fmt::format(
-        "torrentAdd: HTTP response code was {} ({}); response length was {} bytes",
-        status,
-        tr_webGetResponseStr(status),
-        std::size(body)));
+    tr_logAddTrace(
+        fmt::format(
+            "torrentAdd: HTTP response code was {} ({}); response length was {} bytes",
+            status,
+            tr_webGetResponseStr(status),
+            std::size(body)));
 
     if (status == 200 || status == 221) /* http or ftp success.. */
     {
@@ -1456,6 +1476,11 @@ char const* torrentAdd(tr_session* session, tr_variant::Map const& args_in, tr_r
     if (auto const val = args_in.value_if<bool>(TR_KEY_sequential_download); val)
     {
         ctor.set_sequential_download(TR_FORCE, *val);
+    }
+
+    if (auto const val = args_in.value_if<int64_t>(TR_KEY_sequential_download_from_piece); val)
+    {
+        ctor.set_sequential_download_from_piece(TR_FORCE, *val);
     }
 
     tr_logAddTrace(fmt::format("torrentAdd: filename is '{}'", filename));

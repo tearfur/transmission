@@ -19,7 +19,7 @@
 #include <vector>
 
 #include <fmt/chrono.h>
-#include <fmt/core.h>
+#include <fmt/format.h>
 
 #include <libtransmission/transmission.h>
 
@@ -165,7 +165,7 @@ int parseCommandLine(app_opts& opts, int argc, char const* const* argv)
 
 [[nodiscard]] auto toString(time_t now)
 {
-    return now == 0 ? "Unknown" : fmt::format("{:%a %b %d %T %Y}", fmt::localtime(now));
+    return now == 0 ? "Unknown" : fmt::format("{:%a %b %d %T %Y}", *std::localtime(&now));
 }
 
 bool compareSecondField(std::string_view l, std::string_view r)
@@ -341,14 +341,15 @@ void doScrape(tr_torrent_metainfo const& metainfo)
         auto response_mutex = std::mutex{};
         auto response_cv = std::condition_variable{};
         auto lock = std::unique_lock(response_mutex);
-        web->fetch({ scrape_url,
-                     [&response, &response_cv](tr_web::FetchResponse const& resp)
-                     {
-                         response = resp;
-                         response_cv.notify_one();
-                     },
-                     nullptr,
-                     TimeoutSecs });
+        web->fetch(
+            { scrape_url,
+              [&response, &response_cv](tr_web::FetchResponse const& resp)
+              {
+                  response = resp;
+                  response_cv.notify_one();
+              },
+              nullptr,
+              TimeoutSecs });
         response_cv.wait(lock);
 
         // check the response code

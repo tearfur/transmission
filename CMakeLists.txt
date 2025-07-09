@@ -1,8 +1,6 @@
-cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.16.3 FATAL_ERROR)
 
-if(POLICY CMP0092)
-    cmake_policy(SET CMP0092 NEW)
-endif()
+cmake_policy(SET CMP0092 NEW)
 if(POLICY CMP0114)
     cmake_policy(SET CMP0114 NEW)
 endif()
@@ -25,12 +23,16 @@ endif()
 project(transmission)
 
 set(TR_THIRD_PARTY_DIR_NAME third-party)
-set(TR_THIRD_PARTY_SOURCE_DIR ${PROJECT_SOURCE_DIR}/${TR_THIRD_PARTY_DIR_NAME})
-set(TR_THIRD_PARTY_BINARY_DIR ${PROJECT_BINARY_DIR}/${TR_THIRD_PARTY_DIR_NAME})
+set(TR_THIRD_PARTY_SOURCE_DIR "${PROJECT_SOURCE_DIR}/${TR_THIRD_PARTY_DIR_NAME}")
+set(TR_THIRD_PARTY_BINARY_DIR "${PROJECT_BINARY_DIR}/${TR_THIRD_PARTY_DIR_NAME}")
 
 list(APPEND CMAKE_MODULE_PATH
     "${PROJECT_SOURCE_DIR}/cmake"
     "${TR_THIRD_PARTY_SOURCE_DIR}/rpavlik-cmake-modules")
+
+list(APPEND CMAKE_IGNORE_PREFIX_PATH
+    "${PROJECT_BINARY_DIR}"
+    "${PROJECT_SOURCE_DIR}")
 
 set(CMAKE_MACOSX_RPATH ON)
 
@@ -46,20 +48,24 @@ set(CURL_MINIMUM 7.28.0)
 set(WOLFSSL_MINIMUM 3.4)
 set(DEFLATE_MINIMUM 1.7)
 set(EVENT2_MINIMUM 2.1.0)
+set(FMT_MINIMUM 8.0.1)
 set(GIOMM_MINIMUM 2.26.0)
 set(GLIBMM_MINIMUM 2.60.0)
 set(GTKMM3_MINIMUM 3.24.0)
 set(GTKMM4_MINIMUM 4.11.1)
 set(OPENSSL_MINIMUM 1.1.0)
 set(MBEDTLS_MINIMUM 1.3)
-set(NPM_MINIMUM 8.1.307) # Node.js 14
+set(NPM_MINIMUM 9.8.1) # Node.js 18.18
 set(PSL_MINIMUM 0.21.1)
 set(QT_MINIMUM 5.6)
+set(SMALL_MINIMUM 0.2.2)
+# utf8cpp v4's version file is configured with `COMPATIBILITY SameMajorVersion`
+# and does not support version range.
+# set(UTF8CPP_MINIMUM 3.1...4)
 
 option(ENABLE_DAEMON "Build daemon" ON)
 tr_auto_option(ENABLE_GTK "Build GTK client" AUTO)
 tr_auto_option(ENABLE_QT "Build Qt client" AUTO)
-tr_auto_option(ENABLE_MAC "Build Mac client" AUTO)
 tr_auto_option(REBUILD_WEB "Rebuild the web client's generated assets. Requires Node.js and network access." OFF)
 option(INSTALL_WEB "Install the web client's generated assets." ON)
 option(ENABLE_UTILS "Build utils (create, edit, show)" ON)
@@ -75,8 +81,14 @@ tr_auto_option(RUN_CLANG_TIDY "Run clang-tidy on the code" AUTO)
 tr_auto_option(USE_SYSTEM_EVENT2 "Use system event2 library" AUTO)
 tr_auto_option(USE_SYSTEM_DEFLATE "Use system deflate library" AUTO)
 tr_auto_option(USE_SYSTEM_DHT "Use system dht library" AUTO)
+tr_auto_option(USE_SYSTEM_FAST_FLOAT "Use system fast_float library" AUTO)
+tr_auto_option(USE_SYSTEM_FMT "Use system fmt library" AUTO)
 tr_auto_option(USE_SYSTEM_MINIUPNPC "Use system miniupnpc library" AUTO)
 tr_auto_option(USE_SYSTEM_NATPMP "Use system natpmp library" AUTO)
+tr_auto_option(USE_SYSTEM_RAPIDJSON "Use system RapidJSON library" AUTO)
+tr_auto_option(USE_SYSTEM_SMALL "Use system small library" AUTO)
+tr_auto_option(USE_SYSTEM_UTF8CPP "Use system uft8cpp library" AUTO)
+tr_auto_option(USE_SYSTEM_WIDE_INTEGER "Use system WideInteger library" AUTO)
 tr_auto_option(USE_SYSTEM_UTP "Use system utp library" AUTO)
 tr_auto_option(USE_SYSTEM_B64 "Use system b64 library" AUTO)
 tr_auto_option(USE_SYSTEM_PSL "Use system psl library" AUTO)
@@ -240,13 +252,6 @@ set(CMAKE_FOLDER "${TR_THIRD_PARTY_DIR_NAME}")
 
 set(SOURCE_ICONS_DIR "${PROJECT_SOURCE_DIR}/icons")
 
-find_package(FastFloat)
-find_package(Fmt)
-find_package(RapidJSON)
-find_package(Small)
-find_package(UtfCpp)
-find_package(WideInteger)
-
 find_package(Threads)
 find_package(PkgConfig QUIET)
 
@@ -334,6 +339,7 @@ if(ENABLE_GTK)
             giomm-2.68>=${GIOMM_MINIMUM})
         set(GTK_VERSION 4)
         set(GTK_FOUND ${GTK4_FOUND})
+        set(GTKMM_MINIMUM ${GTKMM4_MINIMUM})
     endif()
 
     if(NOT GTK_FOUND AND (USE_GTK_VERSION STREQUAL "AUTO" OR USE_GTK_VERSION EQUAL 3))
@@ -343,6 +349,7 @@ if(ENABLE_GTK)
             giomm-2.4>=${GIOMM_MINIMUM})
         set(GTK_VERSION 3)
         set(GTK_FOUND ${GTK3_FOUND})
+        set(GTKMM_MINIMUM ${GTKMM3_MINIMUM})
     endif()
 
     if(GTK_IS_REQUIRED AND NOT GTK_FOUND)
@@ -380,6 +387,14 @@ if(GTK_FOUND)
     target_link_libraries(transmission::gtk_impl
         INTERFACE
             ${GTK${GTK_VERSION}_LIBRARIES})
+
+    if(GTKMM_MINIMUM MATCHES "^([0-9]+)\.([0-9]+)\.")
+        # GDK_VERSION_x_y is only defined for stable versions, i.e. even minor version numbers
+        math(EXPR GTKMM_MINIMUM_MINOR_STABLE "(${CMAKE_MATCH_2} + 1) / 2 * 2")
+        target_compile_definitions(transmission::gtk_impl
+            INTERFACE
+                GDK_VERSION_MIN_REQUIRED=GDK_VERSION_${CMAKE_MATCH_1}_${GTKMM_MINIMUM_MINOR_STABLE})
+    endif()
 endif()
 
 if(ENABLE_QT)
@@ -472,34 +487,24 @@ if(QT_FOUND)
             ${QT_TARGETS})
 endif()
 
-if(ENABLE_MAC)
-    tr_get_required_flag(ENABLE_MAC MAC_IS_REQUIRED)
-
-    if(APPLE)
-        set(MAC_FOUND ON)
-    else()
-        set(MAC_FOUND OFF)
-        if(MAC_IS_REQUIRED)
-            message(SEND_ERROR "Mac build is impossible on non-Mac system.")
-        endif()
-    endif()
-
-    tr_fixup_auto_option(ENABLE_MAC MAC_FOUND MAC_IS_REQUIRED)
-endif()
-
+# Don't build libdeflate as subdirectory as its CMakeLists.txt
+# messes with global CMAKE_* variables and global compiler options
 if(WIN32 AND NOT MINGW)
     set(DEFLATE_LIB_NAME deflatestatic)
 else()
     set(DEFLATE_LIB_NAME deflate)
 endif()
-tr_add_external_auto_library(DEFLATE libdeflate ${DEFLATE_LIB_NAME}
-    TARGET deflate::deflate
+tr_add_external_auto_library(DEFLATE libdeflate
+    LIBNAME ${DEFLATE_LIB_NAME}
+    TARGET libdeflate::libdeflate
     CMAKE_ARGS
         -DLIBDEFLATE_BUILD_SHARED_LIB=OFF
         -DLIBDEFLATE_BUILD_GZIP=OFF)
 
-tr_add_external_auto_library(EVENT2 libevent event
-    TARGET libevent::event
+tr_add_external_auto_library(EVENT2 Libevent
+    SUBPROJECT
+    SOURCE_DIR libevent
+    COMPONENTS core extra
     CMAKE_ARGS
         -DEVENT__DISABLE_OPENSSL:BOOL=ON
         -DEVENT__DISABLE_BENCHMARK:BOOL=ON
@@ -507,9 +512,17 @@ tr_add_external_auto_library(EVENT2 libevent event
         -DEVENT__DISABLE_REGRESS:BOOL=ON
         -DEVENT__DISABLE_SAMPLES:BOOL=ON
         -DEVENT__LIBRARY_TYPE:STRING=STATIC)
+# Workaround, perm fix: https://github.com/libevent/libevent/pull/1791
+if(NOT TARGET libevent::core)
+    add_library(libevent::core ALIAS event_core)
+    add_library(libevent::extra ALIAS event_extra)
+endif()
 
-tr_add_external_auto_library(NATPMP libnatpmp natpmp
-    TARGET natpmp::natpmp)
+tr_add_external_auto_library(NATPMP libnatpmp
+    LIBNAME natpmp
+    TARGET natpmp::natpmp
+    CMAKE_ARGS
+        -DBUILD_SHARED_LIBS=OFF)
 if(NOT USE_SYSTEM_NATPMP)
     target_compile_definitions(natpmp::natpmp
         INTERFACE
@@ -522,14 +535,16 @@ if(WIN32)
 else()
     set(TR_MINIUPNPC_LIBNAME miniupnpc)
 endif()
-tr_add_external_auto_library(MINIUPNPC miniupnp/miniupnpc ${TR_MINIUPNPC_LIBNAME}
-    TARGET miniupnpc::libminiupnpc
+tr_add_external_auto_library(MINIUPNPC miniupnpc
+    LIBNAME ${TR_MINIUPNPC_LIBNAME}
+    SOURCE_DIR miniupnp/miniupnpc
+    TARGET miniupnpc::miniupnpc
     CMAKE_ARGS
         -DUPNPC_BUILD_STATIC=ON
         -DUPNPC_BUILD_SHARED=OFF
         -DUPNPC_BUILD_TESTS=OFF)
 if(NOT USE_SYSTEM_MINIUPNPC)
-    target_compile_definitions(miniupnpc::libminiupnpc
+    target_compile_definitions(miniupnpc::miniupnpc
         INTERFACE
             MINIUPNP_STATICLIB)
 endif()
@@ -537,25 +552,87 @@ unset(TR_MINIUPNPC_LIBNAME)
 
 add_subdirectory(${TR_THIRD_PARTY_SOURCE_DIR}/wildmat)
 
-tr_add_external_auto_library(DHT dht dht
+tr_add_external_auto_library(DHT dht
+    LIBNAME dht
     TARGET dht::dht)
 
-tr_add_external_auto_library(PSL libpsl psl
+tr_add_external_auto_library(PSL libpsl
+    LIBNAME psl
     TARGET psl::psl)
 
 if(ENABLE_UTP)
-    tr_add_external_auto_library(UTP libutp utp
+    tr_add_external_auto_library(UTP libutp
         SUBPROJECT
-        TARGET libutp::libutp
         CMAKE_ARGS
             -DLIBUTP_SHARED:BOOL=OFF)
 endif()
 
-tr_add_external_auto_library(B64 libb64 b64
+tr_add_external_auto_library(B64 libb64
     SUBPROJECT
-    TARGET libb64::libb64
     CMAKE_ARGS
         -DLIBB64_SHARED:BOOL=OFF)
+
+tr_add_external_auto_library(FAST_FLOAT FastFloat
+    SUBPROJECT
+    SOURCE_DIR fast_float
+    CMAKE_ARGS
+        -DFASTFLOAT_INSTALL=OFF
+        -DFASTFLOAT_TEST=OFF
+        -DFASTFLOAT_SANITIZE=OFF
+        -DFASTFLOAT_CXX_STANDARD=${CMAKE_CXX_STANDARD})
+
+tr_add_external_auto_library(FMT fmt
+    SUBPROJECT
+    CMAKE_ARGS
+        -DFMT_INSTALL=OFF
+        -DFMT_SYSTEM_HEADERS=ON)
+if(NOT fmt_VERSION)
+    tr_get_fmt_version(fmt_VERSION, "${TR_THIRD_PARTY_SOURCE_DIR}/fmt/include")
+endif()
+
+# RapidJSON's CMakeLists.txt messes with global
+# CMAKE_* variables, so don't build as subproject
+tr_add_external_auto_library(RAPIDJSON RapidJSON
+    LIBNAME RapidJSON
+    SOURCE_DIR rapidjson
+    TARGET RapidJSON
+    HEADER_ONLY
+    CMAKE_ARGS
+        -DRAPIDJSON_BUILD_DOC=OFF
+        -DRAPIDJSON_BUILD_EXAMPLES=OFF
+        -DRAPIDJSON_BUILD_TESTS=OFF
+        -DRAPIDJSON_BUILD_CXX11=OFF
+        -DRAPIDJSON_BUILD_CXX17=OFF
+        -DCMAKE_INSTALL_DIR=OFF)
+
+tr_add_external_auto_library(SMALL small
+    SUBPROJECT
+    CMAKE_ARGS
+        -DSMALL_BUILD_WITH_EXCEPTIONS=OFF)
+
+tr_add_external_auto_library(UTF8CPP utf8cpp
+    SUBPROJECT
+    SOURCE_DIR utfcpp)
+if (NOT TARGET utf8::cpp)
+    add_library(utf8::cpp ALIAS utf8cpp)
+endif()
+
+tr_add_external_auto_library(WIDE_INTEGER WideInteger
+    SUBPROJECT
+    SOURCE_DIR wide-integer)
+if(NOT TARGET WideInteger::WideInteger)
+    add_library(WideInteger::WideInteger ALIAS WideInteger)
+endif()
+include(CheckCXXSourceCompiles)
+check_cxx_source_compiles(
+"int main()
+{
+    unsigned __int128 u;
+    signed __int128 i;
+    return 0;
+}" TR_HAVE_INT128)
+add_compile_definitions(
+    $<$<BOOL:${TR_HAVE_INT128}>:WIDE_INTEGER_HAS_LIMB_TYPE_UINT64>)
 
 set(TR_WEB_ASSETS ${PROJECT_SOURCE_DIR}/web/public_html)
 if(REBUILD_WEB)
@@ -782,14 +859,14 @@ if(RUN_CLANG_TIDY)
     tr_get_required_flag(RUN_CLANG_TIDY CLANG_TIDY_IS_REQUIRED)
 
     message(STATUS "Looking for clang-tidy")
-    find_program(CLANG_TIDY clang-tidy)
+    find_program(CLANG_TIDY NAMES clang-tidy-20 clang-tidy)
     if(CLANG_TIDY STREQUAL "CLANG_TIDY-NOTFOUND")
         message(STATUS "Looking for clang-tidy - not found")
         if(CLANG_TIDY_IS_REQUIRED)
             message(FATAL_ERROR "clang-tidy is required but wasn't found")
         endif()
     else()
-        message(STATUS "Looking for clang-tidy - found")
+        message(STATUS "Looking for clang-tidy - found: ${CLANG_TIDY}")
         set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY}")
     endif()
 endif()
@@ -809,14 +886,12 @@ endfunction()
 
 add_subdirectory(libtransmission)
 
-set(MAC_PROJECT_DIR macosx)
-
 if(ENABLE_GTK AND ENABLE_NLS)
     find_package(Gettext 0.19.7 REQUIRED)
     add_subdirectory(po)
 endif()
 
-foreach(P cli daemon gtk mac qt utils)
+foreach(P cli daemon gtk qt utils)
     string(TOUPPER "${P}" P_ID)
     if(ENABLE_${P_ID})
         if(DEFINED ${P_ID}_PROJECT_DIR)
