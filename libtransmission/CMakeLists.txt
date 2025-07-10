@@ -269,7 +269,7 @@ target_link_libraries(${TR_NAME}
     PRIVATE
         Threads::Threads
         libdeflate::libdeflate
-        CURL::libcurl
+        transmission::libcurl
         FastFloat::fast_float
         psl::psl
         natpmp::natpmp

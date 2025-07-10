@@ -255,7 +255,17 @@ set(SOURCE_ICONS_DIR "${PROJECT_SOURCE_DIR}/icons")
 find_package(Threads)
 find_package(PkgConfig QUIET)
 
+if(CURL_PREFER_STATIC_LIB)
+    set(CURL_USE_STATIC_LIBS TRUE)
+endif()
 find_package(CURL ${CURL_MINIMUM} REQUIRED)
+
+add_library(transmission::libcurl INTERFACE IMPORTED)
+if(CURL_PREFER_STATIC_LIB AND TARGET CURL::libcurl_static)
+    target_link_libraries(transmission::libcurl INTERFACE CURL::libcurl_static)
+else()
+    target_link_libraries(transmission::libcurl INTERFACE CURL::libcurl)
+endif()
 
 if(ENABLE_DEPRECATED STREQUAL "AUTO")
     if(DEFINED ENV{CI})
