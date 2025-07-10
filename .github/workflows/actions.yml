@@ -1366,7 +1366,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        release: [ 14.3, 13.5 ]
+        release:
+          - 14.3
+          # FreeBSD 13.5 VM works when it works, but it often gets stuck booting
+          # - 13.5
         arch:
           - x86_64
           # aarch64 works, but takes 2+ hours instead of the usual 10-20 minutes
