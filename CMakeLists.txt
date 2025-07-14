@@ -31,10 +31,6 @@ list(APPEND CMAKE_MODULE_PATH
     "${PROJECT_SOURCE_DIR}/cmake"
     "${TR_THIRD_PARTY_SOURCE_DIR}/rpavlik-cmake-modules")
 
-list(APPEND CMAKE_IGNORE_PREFIX_PATH
-    "${PROJECT_BINARY_DIR}"
-    "${PROJECT_SOURCE_DIR}")
-
 set(CMAKE_MACOSX_RPATH ON)
 
 include(CheckIncludeFile)
