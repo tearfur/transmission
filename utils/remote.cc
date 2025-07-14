@@ -341,7 +341,12 @@ auto constexpr Options = std::array<tr_option, 105>{ {
     { 991, "no-start-paused", "Start added torrents unpaused", nullptr, Arg::None, nullptr },
     { 992, "trash-torrent", "Delete torrents after adding", nullptr, Arg::None, nullptr },
     { 993, "no-trash-torrent", "Do not delete torrents after adding", nullptr, Arg::None, nullptr },
-    { 994, "sequential-download", "Download the torrent sequentially", "seq", Arg::None, nullptr },
+    { 994,
+      "sequential-download",
+      "Download the torrent sequentially, starting from <piece> or 0",
+      "seq",
+      Arg::Optional,
+      "<piece>" },
     { 995, "no-sequential-download", "Download the torrent normally", "SEQ", Arg::None, nullptr },
     { 984, "honor-session", "Make the current torrent(s) honor the session limits", "hl", Arg::None, nullptr },
     { 985, "no-honor-session", "Make the current torrent(s) not honor the session limits", "HL", Arg::None, nullptr },
@@ -3152,6 +3157,7 @@ int process_args(char const* rpcurl, int argc, char const* const* argv, RemoteCo
             {
             case 994:
                 args.insert_or_assign(TR_KEY_sequential_download, true);
+                args.insert_or_assign(TR_KEY_sequential_download_from_piece, optarg != nullptr ? numarg(optarg_sv) : 0);
                 break;
 
             case 995:
