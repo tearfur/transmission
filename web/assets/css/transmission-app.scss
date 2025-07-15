@@ -347,6 +347,10 @@ a {
     border-left: 1px solid var(--color-border-default);
     height: 25px;
     margin: 0 6px 0 0;
+
+    &:last-of-type {
+      flex-grow: 1;
+    }
   }
 }
 
