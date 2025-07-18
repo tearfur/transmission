@@ -986,9 +986,9 @@ void print_details(tr_variant::Map const& map)
             }
         }
 
-        if (auto i = t->value_if<double>({ TR_KEY_percent_done, TR_KEY_percent_done_camel }); i)
+        if (auto d = t->value_if<double>({ TR_KEY_percent_done, TR_KEY_percent_done_camel }); d)
         {
-            fmt::print("  Percent Done: {:s}%\n", strlpercent(100.0 * *i));
+            fmt::print("  Percent Done: {:s}%\n", strlpercent(100.0 * *d));
         }
 
         if (auto i = t->value_if<int64_t>(TR_KEY_eta); i)
