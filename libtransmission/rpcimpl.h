@@ -32,7 +32,8 @@ enum Code : int16_t
     SYSTEM_ERROR,
     FILE_IDX_OOR,
     HTTP_ERROR,
-    CORRUPT_TORRENT
+    CORRUPT_TORRENT,
+    PIECE_IDX_OOR,
 };
 }
 } // namespace JsonRpc

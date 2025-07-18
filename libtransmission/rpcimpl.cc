@@ -84,6 +84,8 @@ namespace Error
         return "HTTP error from backend service"sv;
     case CORRUPT_TORRENT:
         return "invalid or corrupt torrent file"sv;
+    case PIECE_IDX_OOR:
+        return "piece index out of range"sv;
     default:
         return {};
     }
@@ -106,11 +108,11 @@ namespace Error
     return ret;
 }
 
-[[nodiscard]] tr_variant::Map build(Error::Code code, tr_variant::Map&& data)
+[[nodiscard]] tr_variant::Map build(Code code, tr_variant::Map&& data)
 {
     auto ret = tr_variant::Map{ 3U };
     ret.try_emplace(TR_KEY_code, code);
-    ret.try_emplace(TR_KEY_message, tr_variant::unmanaged_string(Error::get_message(code)));
+    ret.try_emplace(TR_KEY_message, tr_variant::unmanaged_string(get_message(code)));
     if (!std::empty(data))
     {
         ret.try_emplace(TR_KEY_data, std::move(data));
@@ -541,10 +543,11 @@ namespace make_torrent_field_helpers
     for (size_t idx = 0U; idx != n_trackers; ++idx)
     {
         auto const tracker = tr_torrentTracker(&tor, idx);
-        auto stats_map = tr_variant::Map{ 27U };
+        auto stats_map = tr_variant::Map{ 28U };
         stats_map.try_emplace(TR_KEY_announce, tracker.announce);
         stats_map.try_emplace(TR_KEY_announceState, tracker.announceState);
         stats_map.try_emplace(TR_KEY_downloadCount, tracker.downloadCount);
+        stats_map.try_emplace(TR_KEY_downloader_count, tracker.downloader_count);
         stats_map.try_emplace(TR_KEY_hasAnnounced, tracker.hasAnnounced);
         stats_map.try_emplace(TR_KEY_hasScraped, tracker.hasScraped);
         stats_map.try_emplace(TR_KEY_host, tracker.host_and_port);
@@ -588,6 +591,7 @@ namespace make_torrent_field_helpers
         peer_map.try_emplace(TR_KEY_clientIsChoked, peer.clientIsChoked);
         peer_map.try_emplace(TR_KEY_clientIsInterested, peer.clientIsInterested);
         peer_map.try_emplace(TR_KEY_clientName, peer.client);
+        peer_map.try_emplace(TR_KEY_peer_id, tr_base64_encode(std::string_view{ peer.peer_id.data(), peer.peer_id.size() }));
         peer_map.try_emplace(TR_KEY_flagStr, peer.flagStr);
         peer_map.try_emplace(TR_KEY_isDownloadingFrom, peer.isDownloadingFrom);
         peer_map.try_emplace(TR_KEY_isEncrypted, peer.isEncrypted);
@@ -710,6 +714,7 @@ namespace make_torrent_field_helpers
     case TR_KEY_seedRatioLimit:
     case TR_KEY_seedRatioMode:
     case TR_KEY_sequential_download:
+    case TR_KEY_sequential_download_from_piece:
     case TR_KEY_sizeWhenDone:
     case TR_KEY_source:
     case TR_KEY_startDate:
@@ -804,6 +809,7 @@ namespace make_torrent_field_helpers
     case TR_KEY_seedRatioLimit: return tor.seed_ratio();
     case TR_KEY_seedRatioMode: return tor.seed_ratio_mode();
     case TR_KEY_sequential_download: return tor.is_sequential_download();
+    case TR_KEY_sequential_download_from_piece: return tor.sequential_download_from_piece();
     case TR_KEY_sizeWhenDone: return st.sizeWhenDone;
     case TR_KEY_source: return tor.source();
     case TR_KEY_startDate: return st.startDate;
@@ -1023,6 +1029,20 @@ namespace make_torrent_field_helpers
     return { err, std::move(errmsg) };
 }
 
+[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> set_sequential_download_from_piece(
+    tr_torrent& tor,
+    tr_piece_index_t piece)
+{
+    using namespace JsonRpc;
+    if (piece >= tor.piece_count())
+    {
+        return { Error::PIECE_IDX_OOR, "piece to sequentially download from is outside pieces range"s };
+    }
+
+    tor.set_sequential_download_from_piece(piece);
+    return { Error::SUCCESS, {} }; // no error
+}
+
 [[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> set_file_dls(
     tr_torrent* tor,
     bool wanted,
@@ -1182,6 +1202,11 @@ namespace make_torrent_field_helpers
         if (auto const val = args_in.value_if<bool>(TR_KEY_sequential_download))
         {
             tor->set_sequential_download(*val);
+        }
+
+        if (auto const val = args_in.value_if<int64_t>(TR_KEY_sequential_download_from_piece); val && err == Error::SUCCESS)
+        {
+            std::tie(err, errmsg) = set_sequential_download_from_piece(*tor, *val);
         }
 
         if (auto const val = args_in.value_if<bool>(TR_KEY_downloadLimited))
@@ -1489,11 +1514,12 @@ void blocklistUpdate(
     DoneCb&& done_cb,
     struct tr_rpc_idle_data* idle_data)
 {
-    session->fetch({
-        session->blocklistUrl(),
-        [cb = std::move(done_cb)](tr_web::FetchResponse const& r) { onBlocklistFetched(r, cb); },
-        idle_data,
-    });
+    session->fetch(
+        {
+            session->blocklistUrl(),
+            [cb = std::move(done_cb)](tr_web::FetchResponse const& r) { onBlocklistFetched(r, cb); },
+            idle_data,
+        });
 }
 
 // ---
@@ -1545,11 +1571,12 @@ void onMetadataFetched(tr_web::FetchResponse const& web_response, DoneCb const& 
     auto const& [status, body, primary_ip, did_connect, did_timeout, user_data] = web_response;
     auto* data = static_cast<struct add_torrent_idle_data*>(user_data);
 
-    tr_logAddTrace(fmt::format(
-        "torrentAdd: HTTP response code was {} ({}); response length was {} bytes",
-        status,
-        tr_webGetResponseStr(status),
-        std::size(body)));
+    tr_logAddTrace(
+        fmt::format(
+            "torrentAdd: HTTP response code was {} ({}); response length was {} bytes",
+            status,
+            tr_webGetResponseStr(status),
+            std::size(body)));
 
     if (status == 200 || status == 221) /* http or ftp success.. */
     {
@@ -1685,6 +1712,11 @@ void torrentAdd(tr_session* session, tr_variant::Map const& args_in, DoneCb&& do
     if (auto const val = args_in.value_if<bool>(TR_KEY_sequential_download); val)
     {
         ctor.set_sequential_download(TR_FORCE, *val);
+    }
+
+    if (auto const val = args_in.value_if<int64_t>(TR_KEY_sequential_download_from_piece); val)
+    {
+        ctor.set_sequential_download_from_piece(TR_FORCE, *val);
     }
 
     tr_logAddTrace(fmt::format("torrentAdd: filename is '{}'", filename));

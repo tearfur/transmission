@@ -19,7 +19,7 @@ using tr_quark = size_t;
  * between RPC and settings. This will be a mess and we shouldn't be
  * in a hurry to do it.
  */
-enum
+enum // NOLINT(performance-enum-size)
 {
     TR_KEY_NONE, /* represented as an empty string */
     TR_KEY_activeTorrentCount, /* rpc */
@@ -106,6 +106,7 @@ enum
     TR_KEY_downloaded_bytes,
     TR_KEY_downloadedBytes,
     TR_KEY_downloadedEver,
+    TR_KEY_downloader_count,
     TR_KEY_downloaders,
     TR_KEY_downloading_time_seconds,
     TR_KEY_dropped,
@@ -239,6 +240,7 @@ enum
     TR_KEY_peer_socket_tos,
     TR_KEY_peerIsChoked,
     TR_KEY_peerIsInterested,
+    TR_KEY_peer_id,
     TR_KEY_peers,
     TR_KEY_peers2,
     TR_KEY_peers2_6,
@@ -344,6 +346,7 @@ enum
     TR_KEY_seederCount,
     TR_KEY_seeding_time_seconds,
     TR_KEY_sequential_download,
+    TR_KEY_sequential_download_from_piece,
     TR_KEY_session_count,
     TR_KEY_session_id,
     TR_KEY_sessionCount,
