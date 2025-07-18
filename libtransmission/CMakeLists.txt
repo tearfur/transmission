@@ -3,10 +3,7 @@ include(CheckLibraryExists)
 include(CheckSymbolExists)
 
 if(ENABLE_NLS)
-    check_library_exists(intl libintl_gettext "" HAVE_LIBINTL)
-    if(HAVE_LIBINTL)
-        set(LIBINTL_LIBRARY intl)
-    endif()
+    find_package(Intl)
 endif()
 
 check_symbol_exists(SO_REUSEPORT "sys/types.h;sys/socket.h" HAVE_SO_REUSEPORT)
@@ -217,6 +214,7 @@ tr_allow_compile_if(
 target_compile_definitions(${TR_NAME}
     PRIVATE
         __TRANSMISSION__
+        RAPIDJSON_HAS_STDSTRING=1
         WIDE_INTEGER_DISABLE_FLOAT_INTEROP
         WIDE_INTEGER_DISABLE_IOSTREAM
         PACKAGE_DATA_DIR="${CMAKE_INSTALL_FULL_DATAROOTDIR}"
@@ -226,23 +224,19 @@ target_compile_definitions(${TR_NAME}
         $<$<BOOL:${USE_SYSTEM_B64}>:USE_SYSTEM_B64>
         $<$<BOOL:${HAVE_SO_REUSEPORT}>:HAVE_SO_REUSEPORT=1>
     PUBLIC
+        $<IF:$<VERSION_GREATER_EQUAL:${fmt_VERSION},11.2.0>,FMT_USE_EXCEPTIONS,FMT_EXCEPTIONS>=0
+        SMALL_DISABLE_EXCEPTIONS=1 # Workaround, perm fix at https://github.com/alandefreitas/small/pull/52
         $<$<STREQUAL:${CRYPTO_PKG},ccrypto>:WITH_CCRYPTO>
         $<$<STREQUAL:${CRYPTO_PKG},mbedtls>:WITH_MBEDTLS>
         $<$<STREQUAL:${CRYPTO_PKG},openssl>:WITH_OPENSSL>
         $<$<STREQUAL:${CRYPTO_PKG},wolfssl>:WITH_WOLFSSL>
-        $<$<NOT:$<BOOL:${ENABLE_NLS}>>:DISABLE_GETTEXT>)
+        $<$<BOOL:${Intl_FOUND}>:ENABLE_GETTEXT>)
 
 tr_target_compile_definitions_for_headers(${TR_NAME}
     PRIVATE
         sys/statvfs.h
         xfs/xfs.h
         xlocale.h)
-
-if(ENABLE_NLS)
-    tr_target_compile_definitions_for_headers(${TR_NAME}
-        PRIVATE
-            libintl.h)
-endif()
 
 tr_target_compile_definitions_for_functions(${TR_NAME}
     PRIVATE
@@ -259,17 +253,13 @@ tr_target_compile_definitions_for_functions(${TR_NAME}
         pread
         pwrite
         sendfile64
-        statvfs
-    PUBLIC
-        gettext
-        ngettext
-    REQUIRED_LIBS
-        $<$<BOOL:${HAVE_LIBINTL}>:${LIBINTL_LIBRARY}>) # gettext, ngettext
+        statvfs)
 
 target_include_directories(${TR_NAME}
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/..
-        ${CMAKE_CURRENT_BINARY_DIR}/..)
+        ${CMAKE_CURRENT_BINARY_DIR}/..
+        ${Intl_INCLUDE_DIRS})
 
 if(ANDROID)
     find_library(log-lib log)
@@ -278,16 +268,16 @@ endif()
 target_link_libraries(${TR_NAME}
     PRIVATE
         Threads::Threads
-        deflate::deflate
+        libdeflate::libdeflate
         CURL::libcurl
         FastFloat::fast_float
         psl::psl
         natpmp::natpmp
-        miniupnpc::libminiupnpc
+        miniupnpc::miniupnpc
         dht::dht
         libutp::libutp
         libb64::libb64
-        ${LIBINTL_LIBRARY}
+        ${Intl_LIBRARIES}
         ${LIBM_LIBRARY}
         ${LIBQUOTA_LIBRARY}
         ${TR_NETWORK_LIBRARIES}
@@ -304,7 +294,8 @@ target_link_libraries(${TR_NAME}
         transmission::crypto_impl
         fmt::fmt-header-only
         small::small
-        libevent::event)
+        libevent::core
+        libevent::extra)
 
 if(INSTALL_LIB)
     install(

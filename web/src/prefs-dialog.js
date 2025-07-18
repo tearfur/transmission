@@ -61,10 +61,11 @@ export class PrefsDialog extends EventTarget {
       return;
     }
 
+    const args = response.result ?? response.error?.data ?? {};
     const element = this.elements.network.port_status_label[ip_protocol];
-    const is_open = response.arguments.port_is_open || false;
+    const is_open = args.port_is_open ?? false;
     element.dataset.open = is_open;
-    if ('port_is_open' in response.arguments) {
+    if ('port_is_open' in args) {
       setTextContent(element, is_open ? 'Open' : 'Closed');
     } else {
       setTextContent(element, 'Error');
@@ -235,7 +236,7 @@ export class PrefsDialog extends EventTarget {
   }
 
   static _toggleProtocolHandler(button) {
-    const handlerUrl = new URL(window.location.href);
+    const handlerUrl = new URL(globalThis.location.href);
     handlerUrl.search = 'addtorrent=%s';
     if (this._getProtocolHandlerRegistered()) {
       navigator.unregisterProtocolHandler?.('magnet', handlerUrl.toString());

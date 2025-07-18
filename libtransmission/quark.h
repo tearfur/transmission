@@ -15,7 +15,7 @@ using tr_quark = size_t;
 /*
  * Predefined Quarks.
  */
-enum
+enum // NOLINT(performance-enum-size)
 {
     TR_KEY_NONE, /* represented as an empty string */
     TR_KEY_active_torrent_count_camel, /* rpc (deprecated) */
@@ -89,6 +89,7 @@ enum
     TR_KEY_client_is_choked,
     TR_KEY_client_is_interested,
     TR_KEY_client_name,
+    TR_KEY_code,
     TR_KEY_comment,
     TR_KEY_comment_utf_8,
     TR_KEY_compact_view_kebab,
@@ -108,6 +109,7 @@ enum
     TR_KEY_cumulative_stats,
     TR_KEY_current_stats_kebab,
     TR_KEY_current_stats,
+    TR_KEY_data,
     TR_KEY_date,
     TR_KEY_date_created_camel,
     TR_KEY_date_created,
@@ -151,6 +153,7 @@ enum
     TR_KEY_downloaded_ever_camel,
     TR_KEY_downloaded_bytes,
     TR_KEY_downloaded_ever,
+    TR_KEY_downloader_count,
     TR_KEY_downloaders,
     TR_KEY_downloading_time_seconds_kebab,
     TR_KEY_downloading_time_seconds,
@@ -261,6 +264,7 @@ enum
     TR_KEY_is_stalled,
     TR_KEY_is_uploading_to,
     TR_KEY_is_utp,
+    TR_KEY_jsonrpc,
     TR_KEY_labels,
     TR_KEY_last_announce_peer_count_camel,
     TR_KEY_last_announce_result_camel,
@@ -317,6 +321,7 @@ enum
     TR_KEY_memory_units_kebab,
     TR_KEY_memory_bytes,
     TR_KEY_memory_units,
+    TR_KEY_message,
     TR_KEY_message_level_kebab,
     TR_KEY_message_level,
     TR_KEY_metadata_percent_complete_camel,
@@ -339,6 +344,7 @@ enum
     TR_KEY_open_dialog_dir_kebab,
     TR_KEY_open_dialog_dir,
     TR_KEY_p,
+    TR_KEY_params,
     TR_KEY_path,
     TR_KEY_path_utf_8,
     TR_KEY_paused,
@@ -356,6 +362,7 @@ enum
     TR_KEY_peer_is_choked_camel,
     TR_KEY_peer_is_interested_camel,
     TR_KEY_peer_congestion_algorithm,
+    TR_KEY_peer_id,
     TR_KEY_peer_is_choked,
     TR_KEY_peer_is_interested,
     TR_KEY_peer_limit,
@@ -539,6 +546,7 @@ enum
     TR_KEY_seeding_time_seconds_kebab,
     TR_KEY_seeding_time_seconds,
     TR_KEY_sequential_download,
+    TR_KEY_sequential_download_from_piece,
     TR_KEY_session_count_kebab,
     TR_KEY_session_id_kebab,
     TR_KEY_session_count_camel,

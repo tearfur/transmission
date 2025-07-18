@@ -2,12 +2,12 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "post-d6e78d1" ]
     paths-ignore:
       - 'docs/**'
       - '.github/**'
   pull_request:
-    branches: [ "main" ]
+    branches: [ "post-d6e78d1" ]
     paths-ignore:
       - 'docs/**'
       - '.github/**'
@@ -55,8 +55,8 @@ jobs:
             libssl-dev \
             ninja-build \
             pkg-config \
-            qtbase5-dev \
-            qttools5-dev
+            qt6-svg-dev \
+            qt6-tools-dev
 
     - name: Configure Project
       if: ${{ matrix.language == 'cpp' }}
