@@ -52,6 +52,8 @@ namespace JsonRpc
 // https://www.jsonrpc.org/specification#error_object
 namespace Error
 {
+namespace
+{
 [[nodiscard]] constexpr std::string_view get_message(Code code)
 {
     switch (code)
@@ -120,8 +122,11 @@ namespace Error
 
     return ret;
 }
+} // namespace
 } // namespace Error
 
+namespace
+{
 // https://www.jsonrpc.org/specification#response_object
 [[nodiscard]] tr_variant::Map build_response(Error::Code code, tr_variant id, tr_variant::Map&& body)
 {
@@ -146,6 +151,7 @@ namespace Error
 
     return ret;
 }
+} // namespace
 } // namespace JsonRpc
 
 namespace
