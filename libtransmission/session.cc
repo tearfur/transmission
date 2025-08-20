@@ -101,29 +101,30 @@ void bandwidthGroupRead(tr_session* session, std::string_view config_dir)
         auto& group = session->getBandwidthGroup(tr_interned_string{ key });
         auto limits = tr_bandwidth_limits{};
 
-        if (auto const val = group_map->value_if<bool>(TR_KEY_uploadLimited))
+        if (auto const val = group_map->value_if<bool>({ TR_KEY_upload_limited, TR_KEY_upload_limited_camel }); val)
         {
             limits.up_limited = *val;
         }
 
-        if (auto const val = group_map->value_if<bool>(TR_KEY_downloadLimited))
+        if (auto const val = group_map->value_if<bool>({ TR_KEY_download_limited, TR_KEY_download_limited_camel }); val)
         {
             limits.down_limited = *val;
         }
 
-        if (auto const val = group_map->value_if<int64_t>(TR_KEY_uploadLimit))
+        if (auto const val = group_map->value_if<int64_t>({ TR_KEY_upload_limit, TR_KEY_upload_limit_camel }); val)
         {
             limits.up_limit = Speed{ *val, Speed::Units::KByps };
         }
 
-        if (auto const val = group_map->value_if<int64_t>(TR_KEY_downloadLimit))
+        if (auto const val = group_map->value_if<int64_t>({ TR_KEY_download_limit, TR_KEY_download_limit_camel }); val)
         {
             limits.down_limit = Speed{ *val, Speed::Units::KByps };
         }
 
         group.set_limits(limits);
 
-        if (auto const val = group_map->value_if<bool>(TR_KEY_honorsSessionLimits))
+        if (auto const val = group_map->value_if<bool>({ TR_KEY_honors_session_limits, TR_KEY_honors_session_limits_camel });
+            val)
         {
             group.honor_parent_limits(TR_UP, *val);
             group.honor_parent_limits(TR_DOWN, *val);
@@ -139,12 +140,12 @@ void bandwidthGroupWrite(tr_session const* session, std::string_view config_dir)
     {
         auto const limits = group->get_limits();
         auto group_map = tr_variant::Map{ 6U };
-        group_map.try_emplace(TR_KEY_downloadLimit, limits.down_limit.count(Speed::Units::KByps));
-        group_map.try_emplace(TR_KEY_downloadLimited, limits.down_limited);
-        group_map.try_emplace(TR_KEY_honorsSessionLimits, group->are_parent_limits_honored(TR_UP));
+        group_map.try_emplace(TR_KEY_download_limit, limits.down_limit.count(Speed::Units::KByps));
+        group_map.try_emplace(TR_KEY_download_limited, limits.down_limited);
+        group_map.try_emplace(TR_KEY_honors_session_limits, group->are_parent_limits_honored(TR_UP));
         group_map.try_emplace(TR_KEY_name, name.sv());
-        group_map.try_emplace(TR_KEY_uploadLimit, limits.up_limit.count(Speed::Units::KByps));
-        group_map.try_emplace(TR_KEY_uploadLimited, limits.up_limited);
+        group_map.try_emplace(TR_KEY_upload_limit, limits.up_limit.count(Speed::Units::KByps));
+        group_map.try_emplace(TR_KEY_upload_limited, limits.up_limited);
         groups_map.try_emplace(name.quark(), std::move(group_map));
     }
 
@@ -416,9 +417,10 @@ tr_session::BoundSocket::BoundSocket(
         return;
     }
 
-    tr_logAddInfo(fmt::format(
-        fmt::runtime(_("Listening to incoming peer connections on {hostport}")),
-        fmt::arg("hostport", tr_socket_address::display_name(addr, port))));
+    tr_logAddInfo(
+        fmt::format(
+            fmt::runtime(_("Listening to incoming peer connections on {hostport}")),
+            fmt::arg("hostport", tr_socket_address::display_name(addr, port))));
     event_add(ev_.get(), nullptr);
 }
 
@@ -871,7 +873,7 @@ void tr_session::setSettings(tr_session::Settings&& settings_in, bool force)
     }
     else if (force || !dht_ || port_changed || addr_changed || new_settings.dht_enabled != old_settings.dht_enabled)
     {
-        dht_ = tr_dht::create(dht_mediator_, localPeerPort(), udp_core_->socket4(), udp_core_->socket6());
+        dht_ = tr_dht::create(dht_mediator_, advertisedPeerPort(), udp_core_->socket4(), udp_core_->socket6());
     }
 
     if (auto const& val = new_settings.sleep_per_seconds_during_verify;
@@ -1455,6 +1457,14 @@ auto get_remaining_files(std::string_view folder, std::vector<std::string>& queu
         std::begin(queue_order),
         std::end(queue_order),
         std::back_inserter(ret));
+
+    // Read .torrent first if somehow a .magnet of the same hash exists
+    // Example of possible cause: https://github.com/transmission/transmission/issues/5007
+    std::stable_partition(
+        std::begin(ret),
+        std::end(ret),
+        [](std::string_view name) { return tr_strv_ends_with(name, ".torrent"sv); });
+
     return ret;
 }
 
@@ -1497,9 +1507,10 @@ void session_load_torrents(tr_session* session, tr_ctor* ctor, std::promise<size
 
     if (n_torrents != 0U)
     {
-        tr_logAddInfo(fmt::format(
-            fmt::runtime(tr_ngettext("Loaded {count} torrent", "Loaded {count} torrents", n_torrents)),
-            fmt::arg("count", n_torrents)));
+        tr_logAddInfo(
+            fmt::format(
+                fmt::runtime(tr_ngettext("Loaded {count} torrent", "Loaded {count} torrents", n_torrents)),
+                fmt::arg("count", n_torrents)));
     }
 
     loaded_promise->set_value(n_torrents);
@@ -2053,6 +2064,10 @@ void tr_session::verify_add(tr_torrent* const tor)
 }
 
 // ---
+void tr_session::flush_torrent_files(tr_torrent_id_t const tor_id) const noexcept
+{
+    this->cache->flush_torrent(tor_id);
+}
 
 void tr_session::close_torrent_files(tr_torrent_id_t const tor_id) noexcept
 {

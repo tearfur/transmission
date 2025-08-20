@@ -315,6 +315,7 @@ public:
         [[nodiscard]] bool client_has_piece(tr_piece_index_t piece) const override;
         [[nodiscard]] bool client_wants_piece(tr_piece_index_t piece) const override;
         [[nodiscard]] bool is_sequential_download() const override;
+        [[nodiscard]] tr_piece_index_t sequential_download_from_piece() const override;
         [[nodiscard]] uint8_t count_active_requests(tr_block_index_t block) const override;
         [[nodiscard]] size_t count_piece_replication(tr_piece_index_t piece) const override;
         [[nodiscard]] tr_block_span_t block_span(tr_piece_index_t piece) const override;
@@ -348,6 +349,8 @@ public:
             libtransmission::SimpleObservable<tr_torrent*, tr_peer*, tr_block_span_t>::Observer observer) override;
         [[nodiscard]] libtransmission::ObserverTag observe_sequential_download_changed(
             libtransmission::SimpleObservable<tr_torrent*, bool>::Observer observer) override;
+        [[nodiscard]] libtransmission::ObserverTag observe_sequential_download_from_piece_changed(
+            libtransmission::SimpleObservable<tr_torrent*, tr_piece_index_t>::Observer observer) override;
 
     private:
         tr_torrent& tor_;
@@ -941,6 +944,11 @@ bool tr_swarm::WishlistMediator::is_sequential_download() const
     return tor_.is_sequential_download();
 }
 
+tr_piece_index_t tr_swarm::WishlistMediator::sequential_download_from_piece() const
+{
+    return tor_.sequential_download_from_piece();
+}
+
 uint8_t tr_swarm::WishlistMediator::count_active_requests(tr_block_index_t block) const
 {
     auto const op = [block](uint8_t acc, auto const& peer)
@@ -1062,6 +1070,12 @@ libtransmission::ObserverTag tr_swarm::WishlistMediator::observe_sequential_down
     libtransmission::SimpleObservable<tr_torrent*, bool>::Observer observer)
 {
     return tor_.sequential_download_changed_.observe(std::move(observer));
+}
+
+libtransmission::ObserverTag tr_swarm::WishlistMediator::observe_sequential_download_from_piece_changed(
+    libtransmission::SimpleObservable<tr_torrent*, tr_piece_index_t>::Observer observer)
+{
+    return tor_.sequential_download_from_piece_changed_.observe(std::move(observer));
 }
 
 // ---
@@ -1253,7 +1267,7 @@ void create_bit_torrent_peer(
     tr_torrent& tor,
     std::shared_ptr<tr_peerIo> io,
     std::shared_ptr<tr_peer_info> peer_info,
-    tr_interned_string client)
+    tr_peer_id_t peer_id)
 {
     TR_ASSERT(peer_info);
     TR_ASSERT(tor.swarm != nullptr);
@@ -1261,7 +1275,7 @@ void create_bit_torrent_peer(
     tr_swarm* swarm = tor.swarm;
 
     auto* const
-        msgs = tr_peerMsgs::create(tor, std::move(peer_info), std::move(io), client, &tr_swarm::peer_callback_bt, swarm);
+        msgs = tr_peerMsgs::create(tor, std::move(peer_info), std::move(io), peer_id, &tr_swarm::peer_callback_bt, swarm);
     swarm->peers.push_back(msgs);
 
     ++swarm->stats.peer_count;
@@ -1353,16 +1367,8 @@ void create_bit_torrent_peer(
         return false;
     }
 
-    auto client = tr_interned_string{};
-    if (result.peer_id)
-    {
-        auto buf = std::array<char, 128>{};
-        tr_clientForId(std::data(buf), sizeof(buf), *result.peer_id);
-        client = tr_interned_string{ tr_quark_new(std::data(buf)) };
-    }
-
     result.io->set_bandwidth(&swarm->tor->bandwidth());
-    create_bit_torrent_peer(*swarm->tor, result.io, std::move(info), client);
+    create_bit_torrent_peer(*swarm->tor, result.io, std::move(info), result.peer_id.value_or(tr_peer_id_t{}));
 
     return true;
 }
@@ -1759,6 +1765,7 @@ namespace peer_stat_helpers
 
     addr.display_name(stats.addr, sizeof(stats.addr));
     stats.client = peer->user_agent().c_str();
+    stats.peer_id = peer->peer_id();
     stats.port = port.host();
     stats.from = peer->peer_info->from_first();
     stats.progress = peer->percent_done();
@@ -1860,21 +1867,14 @@ tr_peer_stat* tr_peerMgrPeerStats(tr_torrent const* tor, size_t* setme_count)
     auto* const ret = new tr_peer_stat[n];
 
     // TODO: re-implement as a callback solution (similar to tr_sessionSetCompletenessCallback) in case present call to run_in_session_thread is causing hangs when the peers info window is displayed.
-    auto done_promise = std::promise<void>{};
-    auto done_future = done_promise.get_future();
-    tor->session->run_in_session_thread(
-        [&peers, &ret, &done_promise]()
-        {
-            auto const now = tr_time();
-            auto const now_msec = tr_time_msec();
-            std::transform(
-                std::begin(peers),
-                std::end(peers),
-                ret,
-                [&now, &now_msec](auto const* peer) { return peer_stat_helpers::get_peer_stats(peer, now, now_msec); });
-            done_promise.set_value();
-        });
-    done_future.wait();
+    auto const lock = tor->unique_lock();
+    auto const now = tr_time();
+    auto const now_msec = tr_time_msec();
+    std::transform(
+        std::begin(peers),
+        std::end(peers),
+        ret,
+        [&now, &now_msec](auto const* peer) { return peer_stat_helpers::get_peer_stats(peer, now, now_msec); });
 
     *setme_count = n;
     return ret;

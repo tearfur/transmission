@@ -765,6 +765,7 @@ public:
         return open_files_;
     }
 
+    void flush_torrent_files(tr_torrent_id_t tor_id) const noexcept;
     void close_torrent_files(tr_torrent_id_t tor_id) noexcept;
     void close_torrent_file(tr_torrent const& tor, tr_file_index_t file_num) noexcept;
 
@@ -1034,7 +1035,7 @@ public:
 
     bool set_global_address(tr_address const& addr) noexcept
     {
-        return ip_cache_.set_global_addr(addr.type, addr);
+        return ip_cache_.set_global_addr(addr);
     }
 
     [[nodiscard]] std::optional<tr_address> global_source_address(tr_address_type type) const noexcept
@@ -1240,10 +1241,10 @@ public:
     /// constexpr fields
 
     static constexpr std::array<std::tuple<tr_quark, tr_quark, TrScript>, 3> Scripts{
-        { { TR_KEY_script_torrent_added_enabled, TR_KEY_script_torrent_added_filename, TR_SCRIPT_ON_TORRENT_ADDED },
-          { TR_KEY_script_torrent_done_enabled, TR_KEY_script_torrent_done_filename, TR_SCRIPT_ON_TORRENT_DONE },
-          { TR_KEY_script_torrent_done_seeding_enabled,
-            TR_KEY_script_torrent_done_seeding_filename,
+        { { TR_KEY_script_torrent_added_enabled_kebab, TR_KEY_script_torrent_added_filename_kebab, TR_SCRIPT_ON_TORRENT_ADDED },
+          { TR_KEY_script_torrent_done_enabled_kebab, TR_KEY_script_torrent_done_filename_kebab, TR_SCRIPT_ON_TORRENT_DONE },
+          { TR_KEY_script_torrent_done_seeding_enabled_kebab,
+            TR_KEY_script_torrent_done_seeding_filename_kebab,
             TR_SCRIPT_ON_TORRENT_DONE_SEEDING } }
     };
 

@@ -4,8 +4,6 @@
 
 /beta
 /build
-Transmission.xcodeproj/*.xcworkspace
-Transmission.xcodeproj/xcuserdata
 /cli/transmissioncli
 /daemon/transmission-daemon
 /daemon/transmission-proxy
@@ -14,8 +12,6 @@ Transmission.xcodeproj/xcuserdata
 /gtk/transmission-gtk
 /libtransmission/*.a
 /libtransmission/version.h
-/macosx/Info.plist
-/macosx/**/*~.nib
 node_modules/
 /po/*.mo
 /REVISION

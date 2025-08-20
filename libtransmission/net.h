@@ -50,6 +50,7 @@ using tr_socket_t = SOCKET;
 #define ENETUNREACH WSAENETUNREACH
 
 #define sockerrno WSAGetLastError()
+#define set_sockerrno(save)
 #else
 /** @brief Platform-specific socket descriptor type. */
 using tr_socket_t = int;
@@ -57,6 +58,7 @@ using tr_socket_t = int;
 #define TR_BAD_SOCKET (-1)
 
 #define sockerrno errno
+#define set_sockerrno(save) (sockerrno) = (save)
 #endif
 
 #include "libtransmission/transmission.h" // tr_peer_from
@@ -221,6 +223,11 @@ struct tr_address
         return this->compare(that) == 0;
     }
 
+    [[nodiscard]] bool operator!=(tr_address const& that) const noexcept
+    {
+        return !(*this == that);
+    }
+
     [[nodiscard]] bool operator<(tr_address const& that) const noexcept
     {
         return this->compare(that) < 0;
@@ -249,6 +256,8 @@ struct tr_address
     {
         return is_ipv6() && IN6_IS_ADDR_LINKLOCAL(&addr.addr6);
     }
+
+    [[nodiscard]] std::optional<tr_address> from_ipv4_mapped() const noexcept;
 
     tr_address_type type = NUM_TR_AF_INET_TYPES;
     union
