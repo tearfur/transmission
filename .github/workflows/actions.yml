@@ -1533,7 +1533,7 @@ jobs:
               -DENABLE_WERROR=ON \
               -DRUN_CLANG_TIDY=OFF \
               -DUSE_SYSTEM_DEFLATE=ON \
-              -DUSE_SYSTEM_EVENT2=OFF `# Re-enable after our CMake build switched to event-core + event-extra` \
+              -DUSE_SYSTEM_EVENT2=ON \
               -DUSE_SYSTEM_FAST_FLOAT=ON \
               -DUSE_SYSTEM_FMT=ON \
               -DUSE_SYSTEM_GTEST=ON \
