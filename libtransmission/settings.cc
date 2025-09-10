@@ -382,32 +382,6 @@ tr_variant save_string(std::string const& val)
     return val;
 }
 
-// ---
-
-bool load_nullable_string(tr_variant const& src, std::optional<std::string>* tgt)
-{
-    if (src.holds_alternative<std::nullptr_t>())
-    {
-        tgt->reset();
-        return true;
-    }
-
-    if (auto const val = src.value_if<std::string_view>())
-    {
-        *tgt = std::string{ *val };
-        return true;
-    }
-
-    return false;
-}
-
-tr_variant save_nullable_string(std::optional<std::string> const& val)
-{
-    return val ? tr_variant{ *val } : nullptr;
-}
-
-// ---
-
 bool load_tos_t(tr_variant const& src, tr_tos_t* tgt)
 {
     if (auto const val = src.value_if<std::string_view>())
@@ -502,7 +476,6 @@ Settings::Settings()
     add_type_handler(load_preferred_transport, save_preferred_transport);
     add_type_handler(load_size_t, save_size_t);
     add_type_handler(load_string, save_string);
-    add_type_handler(load_nullable_string, save_nullable_string);
     add_type_handler(load_tos_t, save_tos_t);
     add_type_handler(load_verify_added_mode, save_verify_added_mode);
 }

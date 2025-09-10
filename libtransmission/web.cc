@@ -624,15 +624,6 @@ public:
             (void)curl_easy_setopt(e, CURLOPT_COOKIEFILE, file.c_str());
         }
 
-        if (auto const& proxy_url = mediator.proxyUrl(); proxy_url)
-        {
-            (void)curl_easy_setopt(e, CURLOPT_PROXY, proxy_url->c_str());
-        }
-        else
-        {
-            (void)curl_easy_setopt(e, CURLOPT_PROXY, nullptr);
-        }
-
         if (auto const& range = task.range(); range)
         {
             /* don't bother asking the server to compress webseed fragments */
