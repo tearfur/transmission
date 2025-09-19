@@ -43,11 +43,11 @@ target_sources(${TR_NAME}
         clients.h
         completion.cc
         completion.h
-        crypto-utils-ccrypto.cc
+        $<$<STREQUAL:${CRYPTO_PKG},ccrypto>:crypto-utils-ccrypto.cc>
         crypto-utils-fallback.cc
-        crypto-utils-mbedtls.cc
-        crypto-utils-openssl.cc
-        crypto-utils-wolfssl.cc
+        $<$<STREQUAL:${CRYPTO_PKG},mbedtls>:crypto-utils-mbedtls.cc>
+        $<$<STREQUAL:${CRYPTO_PKG},openssl>:crypto-utils-openssl.cc>
+        $<$<STREQUAL:${CRYPTO_PKG},wolfssl>:crypto-utils-wolfssl.cc>
         crypto-utils.cc
         crypto-utils.h
         error-types.h
@@ -190,16 +190,6 @@ target_sources(${TR_NAME}
         ${CMAKE_CURRENT_BINARY_DIR}/version.h)
 
 tr_allow_compile_if(
-    [=[[TRUE]]=]
-        crypto-utils-fallback.cc
-    [=[[CRYPTO_PKG STREQUAL "ccrypto"]]=]
-        crypto-utils-ccrypto.cc
-    [=[[CRYPTO_PKG STREQUAL "mbedtls"]]=]
-        crypto-utils-mbedtls.cc
-    [=[[CRYPTO_PKG STREQUAL "openssl"]]=]
-        crypto-utils-openssl.cc
-    [=[[CRYPTO_PKG STREQUAL "wolfssl"]]=]
-        crypto-utils-wolfssl.cc
     [=[[ENABLE_UTP]]=]
         tr-utp.cc
     [=[[WITH_INOTIFY]]=]
