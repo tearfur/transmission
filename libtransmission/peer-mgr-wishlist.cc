@@ -39,12 +39,8 @@ namespace
             return lhs + 1U != rhs;
         };
 
-        auto span_end = std::adjacent_find(span_begin, end, NotAdjacent);
-        if (span_end == end)
-        {
-            --span_end;
-        }
-        spans.push_back({ *span_begin, *span_end + 1 });
+        auto const span_end = std::min(std::adjacent_find(span_begin, end, NotAdjacent), std::prev(end));
+        spans.push_back({ *span_begin, *span_end + 1U });
 
         span_begin = std::next(span_end);
     }
