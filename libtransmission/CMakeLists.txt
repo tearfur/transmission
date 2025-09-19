@@ -122,8 +122,8 @@ target_sources(${TR_NAME}
         settings.h
         stats.cc
         stats.h
-        subprocess-posix.cc
-        subprocess-win32.cc
+        $<$<NOT:$<BOOL:${WIN32}>>:subprocess-posix.cc>
+        $<$<BOOL:${WIN32}>:subprocess-win32.cc>
         subprocess.h
         timer-ev.cc
         timer-ev.h
@@ -192,10 +192,8 @@ target_sources(${TR_NAME}
 tr_allow_compile_if(
     [=[[WIN32]]=]
         file-win32.cc
-        subprocess-win32.cc
     [=[[NOT WIN32]]=]
-        file-posix.cc
-        subprocess-posix.cc)
+        file-posix.cc)
 
 target_compile_definitions(${TR_NAME}
     PRIVATE
