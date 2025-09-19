@@ -57,8 +57,8 @@ target_sources(${TR_NAME}
         file-capacity.cc
         file-piece-map.cc
         file-piece-map.h
-        file-posix.cc
-        file-win32.cc
+        $<$<NOT:$<BOOL:${WIN32}>>:file-posix.cc>
+        $<$<BOOL:${WIN32}>:file-win32.cc>
         file.cc
         file.h
         handshake.cc
@@ -188,12 +188,6 @@ configure_file(version.h.in version.h)
 target_sources(${TR_NAME}
     PRIVATE
         ${CMAKE_CURRENT_BINARY_DIR}/version.h)
-
-tr_allow_compile_if(
-    [=[[WIN32]]=]
-        file-win32.cc
-    [=[[NOT WIN32]]=]
-        file-posix.cc)
 
 target_compile_definitions(${TR_NAME}
     PRIVATE
