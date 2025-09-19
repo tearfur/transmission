@@ -154,7 +154,7 @@ target_sources(${TR_NAME}
         tr-macros.h
         tr-strbuf.h
         tr-udp.cc
-        tr-utp.cc
+        $<$<BOOL:${ENABLE_UTP}>:tr-utp.cc>
         tr-utp.h
         transmission.h
         utils-ev.cc
@@ -190,8 +190,6 @@ target_sources(${TR_NAME}
         ${CMAKE_CURRENT_BINARY_DIR}/version.h)
 
 tr_allow_compile_if(
-    [=[[ENABLE_UTP]]=]
-        tr-utp.cc
     [=[[WITH_INOTIFY]]=]
         watchdir-inotify.cc
     [=[[WITH_KQUEUE]]=]
