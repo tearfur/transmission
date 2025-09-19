@@ -171,9 +171,9 @@ target_sources(${TR_NAME}
         version.h.in
         watchdir-base.h
         watchdir-generic.cc
-        watchdir-inotify.cc
-        watchdir-kqueue.cc
-        watchdir-win32.cc
+        $<$<BOOL:${WITH_INOTIFY}>:watchdir-inotify.cc>
+        $<$<BOOL:${WITH_KQUEUE}>:watchdir-kqueue.cc>
+        $<$<BOOL:${WIN32}>:watchdir-win32.cc>
         watchdir.cc
         watchdir.h
         web-utils.cc
@@ -190,14 +190,9 @@ target_sources(${TR_NAME}
         ${CMAKE_CURRENT_BINARY_DIR}/version.h)
 
 tr_allow_compile_if(
-    [=[[WITH_INOTIFY]]=]
-        watchdir-inotify.cc
-    [=[[WITH_KQUEUE]]=]
-        watchdir-kqueue.cc
     [=[[WIN32]]=]
         file-win32.cc
         subprocess-win32.cc
-        watchdir-win32.cc
     [=[[NOT WIN32]]=]
         file-posix.cc
         subprocess-posix.cc)
