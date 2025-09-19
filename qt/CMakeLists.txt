@@ -21,7 +21,7 @@ target_sources(${TR_NAME}-qt
         $<$<BOOL:${ENABLE_QT_COM_INTEROP}>:ComInteropHelper.cc>
         ComInteropHelper.h
         CustomVariantType.h
-        DBusInteropHelper.cc
+        $<$<BOOL:${ENABLE_QT_DBUS_INTEROP}>:DBusInteropHelper.cc>
         DBusInteropHelper.h
         DetailsDialog.cc
         DetailsDialog.h
@@ -111,10 +111,6 @@ target_sources(${TR_NAME}-qt
         VariantHelpers.h
         WatchDir.cc
         WatchDir.h)
-
-tr_allow_compile_if(
-    [=[[ENABLE_QT_DBUS_INTEROP]]=]
-        DBusInteropHelper.cc)
 
 target_sources(${TR_NAME}-qt
     PRIVATE
