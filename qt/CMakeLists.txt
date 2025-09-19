@@ -18,7 +18,7 @@ target_sources(${TR_NAME}-qt
         BaseDialog.h
         ColumnResizer.cc
         ColumnResizer.h
-        ComInteropHelper.cc
+        $<$<BOOL:${ENABLE_QT_COM_INTEROP}>:ComInteropHelper.cc>
         ComInteropHelper.h
         CustomVariantType.h
         DBusInteropHelper.cc
@@ -113,8 +113,6 @@ target_sources(${TR_NAME}-qt
         WatchDir.h)
 
 tr_allow_compile_if(
-    [=[[ENABLE_QT_COM_INTEROP]]=]
-        ComInteropHelper.cc
     [=[[ENABLE_QT_DBUS_INTEROP]]=]
         DBusInteropHelper.cc)
 
