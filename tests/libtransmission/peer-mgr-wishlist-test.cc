@@ -27,6 +27,7 @@ protected:
         mutable std::map<tr_piece_index_t, tr_block_span_t> block_span_;
         mutable std::map<tr_piece_index_t, tr_priority_t> piece_priority_;
         mutable std::map<tr_piece_index_t, size_t> piece_replication_;
+        mutable std::map<tr_piece_index_t, size_t> missing_blocks_;
         mutable std::set<tr_block_index_t> client_has_block_;
         mutable std::set<tr_piece_index_t> client_has_piece_;
         mutable std::set<tr_piece_index_t> client_wants_piece_;
@@ -69,7 +70,10 @@ protected:
         {
             return piece_replication_[piece];
         }
-
+        [[nodiscard]] size_t count_missing_blocks(tr_piece_index_t piece) const override
+        {
+            return missing_blocks_[piece];
+        }
         [[nodiscard]] tr_block_span_t block_span(tr_piece_index_t piece) const override
         {
             return block_span_[piece];

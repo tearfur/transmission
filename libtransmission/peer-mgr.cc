@@ -317,6 +317,7 @@ public:
         [[nodiscard]] bool is_sequential_download() const override;
         [[nodiscard]] uint8_t count_active_requests(tr_block_index_t block) const override;
         [[nodiscard]] size_t count_piece_replication(tr_piece_index_t piece) const override;
+        [[nodiscard]] size_t count_missing_blocks(tr_piece_index_t piece) const override;
         [[nodiscard]] tr_block_span_t block_span(tr_piece_index_t piece) const override;
         [[nodiscard]] tr_piece_index_t piece_count() const override;
         [[nodiscard]] tr_priority_t priority(tr_piece_index_t piece) const override;
@@ -959,6 +960,11 @@ size_t tr_swarm::WishlistMediator::count_piece_replication(tr_piece_index_t piec
     };
     return std::accumulate(std::begin(swarm_.peers), std::end(swarm_.peers), size_t{}, op) +
         std::accumulate(std::begin(swarm_.webseeds), std::end(swarm_.webseeds), size_t{}, op);
+}
+
+size_t tr_swarm::WishlistMediator::count_missing_blocks(tr_piece_index_t piece) const
+{
+    return tor_.count_missing_blocks_in_piece(piece);
 }
 
 tr_block_span_t tr_swarm::WishlistMediator::block_span(tr_piece_index_t piece) const

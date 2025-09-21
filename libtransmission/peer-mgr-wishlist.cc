@@ -8,8 +8,8 @@
 #include <functional>
 #include <utility>
 #include <vector>
+#include <map>
 
-#include <small/map.hpp>
 #include <small/vector.hpp>
 
 #define LIBTRANSMISSION_PEER_MODULE
@@ -65,19 +65,12 @@ class Wishlist::Impl
         Candidate(tr_piece_index_t piece_in, tr_piece_index_t salt_in, Mediator const* mediator)
             : piece{ piece_in }
             , block_span{ mediator->block_span(piece_in) }
+            , missing_blocks{ mediator->count_missing_blocks(piece_in) }
             , replication{ mediator->count_piece_replication(piece_in) }
             , priority{ mediator->priority(piece_in) }
             , salt{ salt_in }
-            , mediator_{ mediator }
         {
-            n_reqs.reserve(block_span.end - block_span.begin);
-            for (auto [block, end] = block_span; block < end; ++block)
-            {
-                if (!mediator_->client_has_block(block))
-                {
-                    n_reqs.try_emplace(block, mediator_->count_active_requests(block));
-                }
-            }
+
         }
 
         [[nodiscard]] int compare(Candidate const& that) const noexcept; // <=>
@@ -90,7 +83,7 @@ class Wishlist::Impl
         tr_piece_index_t piece;
         tr_block_span_t block_span;
 
-        small::map<tr_block_index_t, uint8_t> n_reqs;
+        size_t missing_blocks;
 
         // Caching the following 2 values are highly beneficial, because:
         // - they are often used (mainly because resort_piece() is called
@@ -102,9 +95,6 @@ class Wishlist::Impl
         tr_priority_t priority;
 
         tr_piece_index_t salt;
-
-    private:
-        Mediator const* mediator_;
     };
 
     using CandidateVec = std::vector<Candidate>;
@@ -223,77 +213,56 @@ private:
 
     TR_CONSTEXPR20 void inc_active_request_span(tr_block_span_t block_span)
     {
-        if (candidates_dirty_)
+        for (auto block = block_span.begin; block < block_span.end; ++block)
         {
-            return;
-        }
-
-        for (auto block = block_span.begin; block < block_span.end;)
-        {
-            auto it_p = find_by_block(block);
-            if (it_p == std::end(candidates_))
-            {
-                set_candidates_dirty();
-                break;
-            }
-
-            auto& n_reqs = it_p->n_reqs;
-
-            auto it_b_begin = std::begin(n_reqs);
-            it_b_begin = it_b_begin->first >= block_span.begin ? it_b_begin : n_reqs.lower_bound(block_span.begin);
-
-            auto it_b_end = std::end(n_reqs);
-            it_b_end = std::prev(it_b_end)->first < block_span.end ? it_b_end : n_reqs.lower_bound(block_span.end);
-
-            for (auto it_b = it_b_begin; it_b != it_b_end; ++it_b)
-            {
-                ++it_b->second;
-            }
-
-            block = it_p->block_span.end;
+            ++n_reqs[block];
         }
     }
 
     TR_CONSTEXPR20 void dec_active_request_block(tr_block_index_t block)
     {
-        if (candidates_dirty_)
+        if (auto it_n_req = n_reqs.find(block); it_n_req != std::end(n_reqs))
         {
-            return;
-        }
-
-        if (auto it_p = find_by_block(block); it_p != std::end(candidates_))
-        {
-            auto& n_reqs = it_p->n_reqs;
-            if (auto it_b = n_reqs.find(block); it_b != std::end(n_reqs) && it_b->second > 0U)
+            --it_n_req->second;
+            if (it_n_req->second == 0)
             {
-                --it_b->second;
+                n_reqs.erase(it_n_req);
             }
         }
     }
 
     TR_CONSTEXPR20 void dec_active_request_bitfield(tr_bitfield const& requests)
     {
-        if (candidates_dirty_)
+        for (auto it_n_req = std::begin(n_reqs); it_n_req != std::end(n_reqs);)
         {
-            return;
-        }
-
-        for (auto& candidate : candidates_)
-        {
-            for (auto& [block, n_req] : candidate.n_reqs)
+            auto block = it_n_req->first;
+            if (requests.test(block))
             {
-                if (n_req > 0U && requests.test(block))
+                --it_n_req->second;
+                if (it_n_req->second == 0)
                 {
-                    --n_req;
+                    it_n_req = n_reqs.erase(it_n_req);
+                    continue;
                 }
             }
+            ++it_n_req;
         }
+
     }
 
     // ---
 
     TR_CONSTEXPR20 void client_got_block(tr_block_index_t block)
     {
+        if (auto it_n_req = n_reqs.find(block); it_n_req != std::end(n_reqs))
+        {
+            --it_n_req->second;
+            if (it_n_req->second == 0)
+            {
+                n_reqs.erase(it_n_req);
+            }
+        }
+
         if (candidates_dirty_)
         {
             return;
@@ -301,7 +270,7 @@ private:
 
         if (auto iter = find_by_block(block); iter != std::end(candidates_))
         {
-            iter->n_reqs.erase(block);
+            --iter->missing_blocks;
             resort_piece(iter);
         }
     }
@@ -417,6 +386,8 @@ private:
     bool candidates_dirty_ = true;
     bool is_endgame_ = false;
 
+    std::map<tr_block_index_t, uint8_t> n_reqs;
+
     std::array<libtransmission::ObserverTag, 13U> const tags_;
 
     Mediator& mediator_;
@@ -473,12 +444,30 @@ std::vector<tr_block_span_t> Wishlist::Impl::next(
             continue;
         }
 
-        // walk the blocks in this piece that we don't have
-        for (auto const& [block, n_req] : candidate.n_reqs)
+        // walk the blocks in this piece
+        for (auto block = candidate.block_span.begin; block < candidate.block_span.end; ++block)
         {
             if (std::size(blocks) >= n_wanted_blocks)
             {
                 break;
+            }
+
+            // don't request blocks that have already been received
+            if (mediator_.client_has_block(block))
+            {
+                continue;
+            }
+
+            // don't request from too many peers
+            uint8_t n_req{};
+            auto n_req_it = n_reqs.find(block);
+            if (n_req_it != std::end(n_reqs))
+            {
+                n_req = n_req_it->second;
+            }
+            if (n_req >= max_peers)
+            {
+                continue;
             }
 
 #ifdef TR_WISHLIST_ASSERT
@@ -487,12 +476,6 @@ std::vector<tr_block_span_t> Wishlist::Impl::next(
                 n_req == n_req_truth,
                 fmt::format("piece = {}, block = {}, n_req = {}, truth = {}", candidate.piece, block, n_req, n_req_truth));
 #endif
-
-            // don't request from too many peers
-            if (n_req >= max_peers)
-            {
-                continue;
-            }
 
             // don't request block from peers which we already requested from
             if (has_active_request_to_peer(block))
@@ -515,7 +498,7 @@ std::vector<tr_block_span_t> Wishlist::Impl::next(
 int Wishlist::Impl::Candidate::compare(Wishlist::Impl::Candidate const& that) const noexcept
 {
     // prefer pieces closer to completion
-    if (auto const val = tr_compare_3way(std::size(n_reqs), std::size(that.n_reqs)); val != 0)
+    if (auto const val = tr_compare_3way(missing_blocks, that.missing_blocks); val != 0)
     {
         return val;
     }
