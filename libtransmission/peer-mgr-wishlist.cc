@@ -465,10 +465,6 @@ std::vector<tr_block_span_t> Wishlist::Impl::next(
             {
                 n_req = n_req_it->second;
             }
-            if (n_req >= max_peers)
-            {
-                continue;
-            }
 
 #ifdef TR_WISHLIST_ASSERT
             auto const n_req_truth = mediator_.count_active_requests(block);
@@ -476,6 +472,10 @@ std::vector<tr_block_span_t> Wishlist::Impl::next(
                 n_req == n_req_truth,
                 fmt::format("piece = {}, block = {}, n_req = {}, truth = {}", candidate.piece, block, n_req, n_req_truth));
 #endif
+            if (n_req >= max_peers)
+            {
+                continue;
+            }
 
             // don't request block from peers which we already requested from
             if (has_active_request_to_peer(block))
