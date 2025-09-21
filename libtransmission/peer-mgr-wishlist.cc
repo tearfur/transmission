@@ -324,7 +324,7 @@ private:
 
     // ---
 
-    TR_CONSTEXPR20 void recalculate_salt()
+    void recalculate_salt()
     {
         auto salter = tr_salt_shaker<tr_piece_index_t>{};
         auto const is_sequential = mediator_.is_sequential_download();
@@ -352,6 +352,46 @@ private:
 
     // ---
 
+    void recalculate_wanted_pieces()
+    {
+        auto n_old_c = std::size(candidates_);
+        auto salter = tr_salt_shaker<tr_piece_index_t>{};
+        auto const is_sequential = mediator_.is_sequential_download();
+        auto const sequential_download_from_piece = mediator_.sequential_download_from_piece();
+        auto const n_pieces = mediator_.piece_count();
+
+        std::sort(
+            std::begin(candidates_),
+            std::end(candidates_),
+            [](auto const& lhs, auto const& rhs) { return tr_compare_3way(lhs.piece, rhs.piece) < 0; });
+
+        for (tr_piece_index_t piece = 0U, idx_c = 0U; piece < n_pieces; ++piece)
+        {
+            auto const existing_candidate = idx_c < n_old_c && piece == candidates_[idx_c].piece;
+            if (mediator_.client_wants_piece(piece))
+            {
+                if (existing_candidate)
+                {
+                    ++idx_c;
+                }
+                else
+                {
+                    auto const salt = get_salt(piece, n_pieces, salter(), is_sequential, sequential_download_from_piece);
+                    candidates_.emplace_back(piece, salt, &mediator_);
+                }
+            }
+            else if (existing_candidate)
+            {
+                candidates_.erase(std::next(std::begin(candidates_), idx_c));
+                --n_old_c;
+            }
+        }
+
+        std::sort(std::begin(candidates_), std::end(candidates_));
+    }
+
+    // ---
+
     TR_CONSTEXPR20 void resort_piece(CandidateVec::iterator const& pos_old)
     {
         auto const pos_begin = std::begin(candidates_);
@@ -372,13 +412,16 @@ private:
 
     CandidateVec candidates_;
 
-    std::array<libtransmission::ObserverTag, 13U> const tags_;
+    std::array<libtransmission::ObserverTag, 14U> const tags_;
 
     Mediator& mediator_;
 };
 
 Wishlist::Impl::Impl(Mediator& mediator_in)
     : tags_{ {
+          // candidates
+          mediator_in.observe_files_wanted_changed([this](tr_torrent*, tr_file_index_t const*, tr_file_index_t, bool)
+                                                   { recalculate_wanted_pieces(); }),
           // replication, unrequested
           mediator_in.observe_peer_disconnect([this](tr_torrent*, tr_bitfield const& b, tr_bitfield const& ar)
                                               { peer_disconnect(b, ar); }),
