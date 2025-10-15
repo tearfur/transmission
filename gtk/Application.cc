@@ -1,4 +1,4 @@
-// This file Copyright © Transmission authors and contributors.
+// This file Copyright © ReTransmission contributors.
 // It may be used under the MIT (SPDX: MIT) license.
 // License text can be found in the licenses/ folder.
 
@@ -103,8 +103,9 @@ auto const AppIconName = "transmission"sv; // TODO(C++20): Use ""s
 char const* const LICENSE =
     "Copyright 2005-2025. All code is copyrighted by the respective authors.\n"
     "\n"
-    "Transmission can be redistributed and/or modified under the terms of the "
-    "GNU GPL, versions 2 or 3, or by any future license endorsed by Mnemosyne LLC."
+    "Transmission can be redistributed and/or modified under the terms of"
+    "the GNU GPLv2 (http://www.gnu.org/licenses/license-list.html#GPLv2),"
+    "or the GNU GPLv3 (http://www.gnu.org/licenses/license-list.html#GNUGPLv3).\n"
     "\n"
     "In addition, linking to and/or using OpenSSL is allowed.\n"
     "\n"

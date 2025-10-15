@@ -5,9 +5,8 @@ const copyright =
   `// This file was generated with libtransmission/mime-types.js
 // DO NOT EDIT MANUALLY
 
-// This file Copyright © Mnemosyne LLC.
+// This file Copyright © ReTransmission contributors.
 // It may be used under GPLv2 (SPDX: GPL-2.0-only), GPLv3 (SPDX: GPL-3.0-only),
-// or any future license endorsed by Mnemosyne LLC.
 // License text can be found in the licenses/ folder.`;
 
 // https://github.com/jshttp/mime-db
