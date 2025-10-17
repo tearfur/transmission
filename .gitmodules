@@ -15,8 +15,8 @@
 	url = https://github.com/transmission/libnatpmp.git
 [submodule "third-party/libutp"]
 	path = third-party/libutp
-	url = https://github.com/transmission/libutp.git
-	branch = post-3.4-transmission
+	url = https://github.com/tearfur/libutp.git
+	branch = post-3.4-retransmission
 [submodule "third-party/miniupnp"]
 	path = third-party/miniupnp
 	# synced with https://github.com/miniupnp/miniupnp.git
