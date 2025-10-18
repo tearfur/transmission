@@ -4,14 +4,8 @@ target_sources(${TR_NAME}-daemon
     PRIVATE
         daemon.cc
         daemon.h
-        daemon-posix.cc
-        daemon-win32.cc)
-
-tr_allow_compile_if(
-    [=[[WIN32]]=]
-        daemon-win32.cc
-    [=[[NOT WIN32]]=]
-        daemon-posix.cc)
+        $<$<NOT:$<BOOL:${WIN32}>>:daemon-posix.cc>
+        $<$<BOOL:${WIN32}>:daemon-win32.cc>)
 
 target_compile_definitions(${TR_NAME}-daemon
     PRIVATE

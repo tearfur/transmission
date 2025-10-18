@@ -43,11 +43,11 @@ target_sources(${TR_NAME}
         clients.h
         completion.cc
         completion.h
-        crypto-utils-ccrypto.cc
+        $<$<STREQUAL:${CRYPTO_PKG},ccrypto>:crypto-utils-ccrypto.cc>
         crypto-utils-fallback.cc
-        crypto-utils-mbedtls.cc
-        crypto-utils-openssl.cc
-        crypto-utils-wolfssl.cc
+        $<$<STREQUAL:${CRYPTO_PKG},mbedtls>:crypto-utils-mbedtls.cc>
+        $<$<STREQUAL:${CRYPTO_PKG},openssl>:crypto-utils-openssl.cc>
+        $<$<STREQUAL:${CRYPTO_PKG},wolfssl>:crypto-utils-wolfssl.cc>
         crypto-utils.cc
         crypto-utils.h
         error-types.h
@@ -57,8 +57,8 @@ target_sources(${TR_NAME}
         file-capacity.cc
         file-piece-map.cc
         file-piece-map.h
-        file-posix.cc
-        file-win32.cc
+        $<$<NOT:$<BOOL:${WIN32}>>:file-posix.cc>
+        $<$<BOOL:${WIN32}>:file-win32.cc>
         file.cc
         file.h
         handshake.cc
@@ -122,8 +122,8 @@ target_sources(${TR_NAME}
         settings.h
         stats.cc
         stats.h
-        subprocess-posix.cc
-        subprocess-win32.cc
+        $<$<NOT:$<BOOL:${WIN32}>>:subprocess-posix.cc>
+        $<$<BOOL:${WIN32}>:subprocess-win32.cc>
         subprocess.h
         timer-ev.cc
         timer-ev.h
@@ -154,7 +154,7 @@ target_sources(${TR_NAME}
         tr-macros.h
         tr-strbuf.h
         tr-udp.cc
-        tr-utp.cc
+        $<$<BOOL:${ENABLE_UTP}>:tr-utp.cc>
         tr-utp.h
         transmission.h
         utils-ev.cc
@@ -171,9 +171,9 @@ target_sources(${TR_NAME}
         version.h.in
         watchdir-base.h
         watchdir-generic.cc
-        watchdir-inotify.cc
-        watchdir-kqueue.cc
-        watchdir-win32.cc
+        $<$<BOOL:${WITH_INOTIFY}>:watchdir-inotify.cc>
+        $<$<BOOL:${WITH_KQUEUE}>:watchdir-kqueue.cc>
+        $<$<BOOL:${WIN32}>:watchdir-win32.cc>
         watchdir.cc
         watchdir.h
         web-utils.cc
@@ -188,31 +188,6 @@ configure_file(version.h.in version.h)
 target_sources(${TR_NAME}
     PRIVATE
         ${CMAKE_CURRENT_BINARY_DIR}/version.h)
-
-tr_allow_compile_if(
-    [=[[TRUE]]=]
-        crypto-utils-fallback.cc
-    [=[[CRYPTO_PKG STREQUAL "ccrypto"]]=]
-        crypto-utils-ccrypto.cc
-    [=[[CRYPTO_PKG STREQUAL "mbedtls"]]=]
-        crypto-utils-mbedtls.cc
-    [=[[CRYPTO_PKG STREQUAL "openssl"]]=]
-        crypto-utils-openssl.cc
-    [=[[CRYPTO_PKG STREQUAL "wolfssl"]]=]
-        crypto-utils-wolfssl.cc
-    [=[[ENABLE_UTP]]=]
-        tr-utp.cc
-    [=[[WITH_INOTIFY]]=]
-        watchdir-inotify.cc
-    [=[[WITH_KQUEUE]]=]
-        watchdir-kqueue.cc
-    [=[[WIN32]]=]
-        file-win32.cc
-        subprocess-win32.cc
-        watchdir-win32.cc
-    [=[[NOT WIN32]]=]
-        file-posix.cc
-        subprocess-posix.cc)
 
 target_compile_definitions(${TR_NAME}
     PRIVATE
