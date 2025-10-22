@@ -332,6 +332,44 @@ private:
             [block](auto const& c) { return c.block_span.begin <= block && block < c.block_span.end; });
     }
 
+    static constexpr tr_piece_index_t get_salt(
+        tr_piece_index_t const piece,
+        tr_piece_index_t const n_pieces,
+        tr_piece_index_t const random_salt,
+        bool const is_sequential,
+        tr_piece_index_t const sequential_download_from_piece)
+    {
+        if (!is_sequential)
+        {
+            return random_salt;
+        }
+
+        // Download first and last piece first
+        if (piece == 0U)
+        {
+            return 0U;
+        }
+
+        if (piece == n_pieces - 1U)
+        {
+            return 1U;
+        }
+
+        if (sequential_download_from_piece <= 1)
+        {
+            return piece + 1U;
+        }
+
+        // Rotate remaining pieces
+        // 1 2 3 4 5 -> 3 4 5 1 2 if sequential_download_from_piece is 3
+        if (piece < sequential_download_from_piece)
+        {
+            return n_pieces - (sequential_download_from_piece - piece);
+        }
+
+        return piece - sequential_download_from_piece + 2U;
+    }
+
     void maybe_rebuild_candidate_list()
     {
         if (!candidates_dirty_)
@@ -353,38 +391,7 @@ private:
                 continue;
             }
 
-            auto const salt = [&]()
-            {
-                if (!is_sequential)
-                {
-                    return salter();
-                }
-
-                // Download first and last piece first
-                if (piece == 0U)
-                {
-                    return 0U;
-                }
-
-                if (piece == n_pieces - 1U)
-                {
-                    return 1U;
-                }
-
-                if (sequential_download_from_piece <= 1)
-                {
-                    return piece + 1U;
-                }
-
-                // Rotate remaining pieces
-                // 1 2 3 4 5 -> 3 4 5 1 2 if sequential_download_from_piece is 3
-                if (piece < sequential_download_from_piece)
-                {
-                    return n_pieces - (sequential_download_from_piece - piece);
-                }
-
-                return piece - sequential_download_from_piece + 2U;
-            }();
+            auto const salt = get_salt(piece, n_pieces, salter(), is_sequential, sequential_download_from_piece);
             candidates_.emplace_back(piece, salt, &mediator_);
         }
         std::sort(std::begin(candidates_), std::end(candidates_));
