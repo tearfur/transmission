@@ -52,7 +52,7 @@ set(GTKMM3_MINIMUM 3.24.0)
 set(GTKMM4_MINIMUM 4.11.1)
 set(OPENSSL_MINIMUM 1.1.0)
 set(MBEDTLS_MINIMUM 1.3)
-set(NPM_MINIMUM 9.8.1) # Node.js 18.18
+set(NPM_MINIMUM 10.2.3) # Node.js 20.10 (eslint-plugin-unicorn)
 set(PSL_MINIMUM 0.21.1)
 set(QT_MINIMUM 5.6)
 set(SMALL_MINIMUM 0.2.2)
