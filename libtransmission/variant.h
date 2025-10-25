@@ -8,6 +8,7 @@
 #include <algorithm> // std::move()
 #include <cstddef> // size_t
 #include <cstdint> // int64_t
+#include <initializer_list>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -49,7 +50,7 @@ public:
     public:
         Map() = default;
 
-        Map(size_t const n_reserve)
+        explicit Map(size_t const n_reserve)
         {
             vec_.reserve(n_reserve);
         }
@@ -95,11 +96,21 @@ public:
 
         [[nodiscard]] TR_CONSTEXPR20 auto find(tr_quark const key) const noexcept
         {
-            auto const predicate = [key](auto const& item)
+            return Vector::const_iterator{ const_cast<Map*>(this)->find(key) };
+        }
+
+        [[nodiscard]] TR_CONSTEXPR20 auto find(std::initializer_list<tr_quark> keys) noexcept
+        {
+            static auto constexpr Predicate = [](auto const& item, tr_quark key)
             {
                 return item.first == key;
             };
-            return std::find_if(std::cbegin(vec_), std::cend(vec_), predicate);
+            return std::find_first_of(std::begin(vec_), std::end(vec_), std::begin(keys), std::end(keys), Predicate);
+        }
+
+        [[nodiscard]] TR_CONSTEXPR20 auto find(std::initializer_list<tr_quark> keys) const noexcept
+        {
+            return Vector::const_iterator{ const_cast<Map*>(this)->find(keys) };
         }
 
         [[nodiscard]] TR_CONSTEXPR20 auto size() const noexcept
@@ -163,17 +174,29 @@ public:
         // --- custom functions
 
         template<typename Type>
-        [[nodiscard]] TR_CONSTEXPR20 auto find_if(tr_quark const key) noexcept
+        [[nodiscard]] TR_CONSTEXPR20 auto* find_if(tr_quark const key) noexcept
         {
             auto const iter = find(key);
             return iter != end() ? iter->second.get_if<Type>() : nullptr;
         }
 
         template<typename Type>
-        [[nodiscard]] TR_CONSTEXPR20 auto find_if(tr_quark const key) const noexcept
+        [[nodiscard]] TR_CONSTEXPR20 auto const* find_if(tr_quark const key) const noexcept
         {
-            auto const iter = find(key);
+            return const_cast<Map*>(this)->find_if<Type>(key);
+        }
+
+        template<typename Type>
+        [[nodiscard]] TR_CONSTEXPR20 auto* find_if(std::initializer_list<tr_quark> keys) noexcept
+        {
+            auto const iter = find(keys);
             return iter != end() ? iter->second.get_if<Type>() : nullptr;
+        }
+
+        template<typename Type>
+        [[nodiscard]] TR_CONSTEXPR20 auto* find_if(std::initializer_list<tr_quark> keys) const noexcept
+        {
+            return const_cast<Map*>(this)->find_if<Type>(keys);
         }
 
         template<typename Type>
@@ -187,19 +210,31 @@ public:
             return {};
         }
 
+        template<typename Type>
+        [[nodiscard]] std::optional<Type> value_if(std::initializer_list<tr_quark> keys) const noexcept
+        {
+            if (auto it = find(keys); it != end())
+            {
+                return it->second.value_if<Type>();
+            }
+
+            return {};
+        }
+
     private:
         using Vector = std::vector<std::pair<tr_quark, tr_variant>>;
         Vector vec_;
     };
 
     constexpr tr_variant() noexcept = default;
+    ~tr_variant() = default;
     tr_variant(tr_variant const&) = delete;
     tr_variant(tr_variant&& that) noexcept = default;
     tr_variant& operator=(tr_variant const&) = delete;
     tr_variant& operator=(tr_variant&& that) noexcept = default;
 
     template<typename Val>
-    tr_variant(Val&& value)
+    tr_variant(Val&& value) // NOLINT(bugprone-forwarding-reference-overload, google-explicit-constructor)
     {
         *this = std::forward<Val>(value);
     }
@@ -382,10 +417,14 @@ private:
     {
     public:
         StringHolder() = default;
+        ~StringHolder() = default;
         explicit StringHolder(std::string&& str) noexcept;
-        explicit StringHolder(StringHolder&& that) noexcept;
+        StringHolder(StringHolder&& that) noexcept;
+        StringHolder(StringHolder const&) = delete;
         void set_unmanaged(std::string_view sv);
         StringHolder& operator=(StringHolder&& that) noexcept;
+        StringHolder& operator=(StringHolder const&) = delete;
+
         std::string_view sv_;
 
     private:
@@ -565,7 +604,7 @@ public:
 private:
     friend tr_variant;
 
-    enum class Type
+    enum class Type : uint8_t
     {
         Benc,
         Json
@@ -583,7 +622,7 @@ private:
         void (*container_end_func)(tr_variant const& var, void* user_data);
     };
 
-    tr_variant_serde(Type type)
+    explicit tr_variant_serde(Type type)
         : type_{ type }
     {
     }

@@ -37,12 +37,15 @@ public:
         [[nodiscard]] virtual bool client_has_piece(tr_piece_index_t piece) const = 0;
         [[nodiscard]] virtual bool client_wants_piece(tr_piece_index_t piece) const = 0;
         [[nodiscard]] virtual bool is_sequential_download() const = 0;
+        [[nodiscard]] virtual tr_piece_index_t sequential_download_from_piece() const = 0;
         [[nodiscard]] virtual uint8_t count_active_requests(tr_block_index_t block) const = 0;
         [[nodiscard]] virtual size_t count_piece_replication(tr_piece_index_t piece) const = 0;
         [[nodiscard]] virtual tr_block_span_t block_span(tr_piece_index_t piece) const = 0;
         [[nodiscard]] virtual tr_piece_index_t piece_count() const = 0;
         [[nodiscard]] virtual tr_priority_t priority(tr_piece_index_t piece) const = 0;
 
+        [[nodiscard]] virtual libtransmission::ObserverTag observe_files_wanted_changed(
+            libtransmission::SimpleObservable<tr_torrent*, tr_file_index_t const*, tr_file_index_t, bool>::Observer) = 0;
         [[nodiscard]] virtual libtransmission::ObserverTag observe_peer_disconnect(
             libtransmission::SimpleObservable<tr_torrent*, tr_bitfield const&, tr_bitfield const&>::Observer observer) = 0;
         [[nodiscard]] virtual libtransmission::ObserverTag observe_got_bad_piece(
@@ -70,6 +73,8 @@ public:
             libtransmission::SimpleObservable<tr_torrent*, tr_peer*, tr_block_span_t>::Observer observer) = 0;
         [[nodiscard]] virtual libtransmission::ObserverTag observe_sequential_download_changed(
             libtransmission::SimpleObservable<tr_torrent*, bool>::Observer observer) = 0;
+        [[nodiscard]] virtual libtransmission::ObserverTag observe_sequential_download_from_piece_changed(
+            libtransmission::SimpleObservable<tr_torrent*, tr_piece_index_t>::Observer observer) = 0;
 
         virtual ~Mediator() = default;
     };

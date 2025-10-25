@@ -4,18 +4,12 @@ target_sources(${TR_NAME}-daemon
     PRIVATE
         daemon.cc
         daemon.h
-        daemon-posix.cc
-        daemon-win32.cc)
-
-tr_allow_compile_if(
-    [=[[WIN32]]=]
-        daemon-win32.cc
-    [=[[NOT WIN32]]=]
-        daemon-posix.cc)
+        $<$<NOT:$<BOOL:${WIN32}>>:daemon-posix.cc>
+        $<$<BOOL:${WIN32}>:daemon-win32.cc>)
 
 target_compile_definitions(${TR_NAME}-daemon
     PRIVATE
-        $<$<BOOL:${WITH_SYSTEMD}>:USE_SYSTEMD>)
+        $<$<BOOL:${WITH_SYSTEMD}>:WITH_SYSTEMD>)
 
 tr_target_compile_definitions_for_headers(${TR_NAME}-daemon
     PRIVATE
@@ -33,7 +27,7 @@ target_include_directories(${TR_NAME}-daemon SYSTEM
 target_link_libraries(${TR_NAME}-daemon
     PRIVATE
         ${TR_NAME}
-        libevent::event
+        libevent::core
         fmt::fmt-header-only
         $<$<BOOL:${WITH_SYSTEMD}>:${SYSTEMD_LIBRARIES}>)
 

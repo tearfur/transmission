@@ -64,7 +64,7 @@ target_sources(${TR_NAME}-gtk
         SystemTrayIcon.h
         Torrent.cc
         Torrent.h
-        TorrentCellRenderer.cc
+        $<$<STREQUAL:${GTK_VERSION},3>:TorrentCellRenderer.cc>
         TorrentCellRenderer.h
         TorrentFilter.cc
         TorrentFilter.h
@@ -72,10 +72,6 @@ target_sources(${TR_NAME}-gtk
         TorrentSorter.h
         Utils.cc
         Utils.h)
-
-tr_allow_compile_if(
-    [=[[GTK_VERSION EQUAL 3]]=]
-        TorrentCellRenderer.cc)
 
 target_sources(${TR_NAME}-gtk
     PRIVATE

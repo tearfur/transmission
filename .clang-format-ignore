@@ -12,6 +12,3 @@ android/*
 
 # third-party maintained projects
 third-party/*
-
-# maintained at https://github.com/sparkle-project/Sparkle
-macosx/Sparkle.framework/*
