@@ -206,6 +206,7 @@ jobs:
         run: |
           brew install --formulae \
             cmake \
+            crc32c \
             fast_float \
             fmt \
             gettext \
@@ -244,6 +245,7 @@ jobs:
             -DREBUILD_WEB=OFF \
             -DRUN_CLANG_TIDY=OFF \
             -DUSE_SYSTEM_B64=ON \
+            -DUSE_SYSTEM_CRC32C=ON \
             -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
             -DUSE_SYSTEM_FAST_FLOAT=ON \
@@ -392,6 +394,7 @@ jobs:
         run: |
           brew install --formulae \
             cmake \
+            crc32c \
             fast_float \
             fmt \
             gettext \
@@ -437,6 +440,7 @@ jobs:
             -DENABLE_WERROR=ON \
             -DRUN_CLANG_TIDY=OFF \
             -DUSE_SYSTEM_B64=ON \
+            -DUSE_SYSTEM_CRC32C=ON \
             -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
             -DUSE_SYSTEM_FAST_FLOAT=ON \
@@ -475,6 +479,7 @@ jobs:
         run: |
           brew install --formulae \
             cmake \
+            crc32c \
             fast_float \
             fmt \
             gettext \
@@ -514,6 +519,7 @@ jobs:
             -DENABLE_WERROR=ON \
             -DRUN_CLANG_TIDY=OFF \
             -DUSE_SYSTEM_B64=ON \
+            -DUSE_SYSTEM_CRC32C=ON \
             -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
             -DUSE_SYSTEM_FAST_FLOAT=ON \
@@ -545,6 +551,7 @@ jobs:
           apk add \
             ca-certificates \
             cmake \
+            crc32c-dev \
             curl-dev \
             fast_float \
             fmt-dev \
@@ -592,6 +599,7 @@ jobs:
             -DREBUILD_WEB=${{ (needs.what-to-make.outputs.make-web == 'true') && 'ON' || 'OFF' }} \
             -DENABLE_WERROR=ON \
             -DRUN_CLANG_TIDY=OFF \
+            -DUSE_SYSTEM_CRC32C=ON \
             -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
             -DUSE_SYSTEM_FAST_FLOAT=ON \
@@ -755,6 +763,7 @@ jobs:
             -DREBUILD_WEB=${{ (needs.what-to-make.outputs.make-web == 'true') && 'ON' || 'OFF' }} \
             -DENABLE_WERROR=ON \
             -DRUN_CLANG_TIDY=OFF \
+            -DUSE_SYSTEM_CRC32C=OFF \
             -DUSE_SYSTEM_EVENT2=OFF \
             -DUSE_SYSTEM_DEFLATE=OFF \
             -DUSE_SYSTEM_DHT=OFF \
@@ -834,6 +843,7 @@ jobs:
             -DREBUILD_WEB=${{ (needs.what-to-make.outputs.make-web == 'true') && 'ON' || 'OFF' }} \
             -DENABLE_WERROR=ON \
             -DRUN_CLANG_TIDY=OFF \
+            -DUSE_SYSTEM_CRC32C=OFF \
             -DUSE_SYSTEM_EVENT2=OFF \
             -DUSE_SYSTEM_DEFLATE=OFF \
             -DUSE_SYSTEM_DHT=OFF \
@@ -1074,6 +1084,7 @@ jobs:
             fmt-devel \
             gcc-c++ \
             gettext \
+            google-crc32c-devel \
             libb64-devel \
             libcurl-devel \
             libdeflate-devel \
@@ -1122,6 +1133,7 @@ jobs:
             -DENABLE_WERROR=OFF \
             -DRUN_CLANG_TIDY=OFF \
             -DUSE_SYSTEM_B64=ON \
+            -DUSE_SYSTEM_CRC32C=ON \
             -DUSE_SYSTEM_DEFLATE=ON \
             -DUSE_SYSTEM_EVENT2=ON \
             -DUSE_SYSTEM_FAST_FLOAT=ON \
@@ -1399,6 +1411,7 @@ jobs:
             pkg install -y \
               curl \
               cmake \
+              crc32c \
               dht \
               fast_float \
               gettext \
@@ -1441,6 +1454,7 @@ jobs:
               -DENABLE_WERROR=ON \
               -DRUN_CLANG_TIDY=OFF \
               -DUSE_SYSTEM_B64=ON \
+              -DRUN_SYSTEM_CRC32C=ON \
               -DUSE_SYSTEM_DEFLATE=ON \
               -DUSE_SYSTEM_EVENT2=ON \
               -DUSE_SYSTEM_FAST_FLOAT=ON \
@@ -1496,6 +1510,7 @@ jobs:
             pkg_add -I -v \
               curl \
               cmake \
+              crc32c \
               fast-float \
               fmt \
               gettext-tools \
@@ -1532,6 +1547,7 @@ jobs:
               -DENABLE_DEPRECATED=ON \
               -DENABLE_WERROR=ON \
               -DRUN_CLANG_TIDY=OFF \
+              -DRUN_SYSTEM_CRC32C=ON \
               -DUSE_SYSTEM_DEFLATE=ON \
               -DUSE_SYSTEM_EVENT2=ON \
               -DUSE_SYSTEM_FAST_FLOAT=ON \
@@ -1683,6 +1699,7 @@ jobs:
             pkg install -y \
               curl \
               cmake \
+              crc32c \
               `# dht (somehow installing dht causes the build to fail with a bunch of "/usr/local/lib/libdht.so: error: undefined reference to 'dht_*'" messages` \
               fast_float \
               gettext \
@@ -1721,6 +1738,7 @@ jobs:
               -DENABLE_WERROR=ON \
               -DRUN_CLANG_TIDY=OFF \
               -DUSE_SYSTEM_B64=ON \
+              -DRUN_SYSTEM_CRC32C=ON \
               -DUSE_SYSTEM_DEFLATE=ON \
               -DUSE_SYSTEM_EVENT2=ON \
               -DUSE_SYSTEM_FAST_FLOAT=ON \

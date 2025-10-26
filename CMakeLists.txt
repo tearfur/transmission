@@ -89,6 +89,7 @@ tr_auto_option(USE_SYSTEM_WIDE_INTEGER "Use system WideInteger library" AUTO)
 tr_auto_option(USE_SYSTEM_UTP "Use system utp library" AUTO)
 tr_auto_option(USE_SYSTEM_B64 "Use system b64 library" AUTO)
 tr_auto_option(USE_SYSTEM_PSL "Use system psl library" AUTO)
+tr_auto_option(USE_SYSTEM_CRC32C "Use system crc32c library" AUTO)
 tr_list_option(USE_GTK_VERSION "Use specific GTK version" AUTO 3 4)
 tr_list_option(USE_QT_VERSION "Use specific Qt version" AUTO 5 6)
 tr_list_option(WITH_CRYPTO "Use specified crypto library" AUTO ccrypto mbedtls openssl wolfssl)
@@ -568,6 +569,18 @@ tr_add_external_auto_library(B64 libb64
     SUBPROJECT
     CMAKE_ARGS
         -DLIBB64_SHARED:BOOL=OFF)
+
+# Don't build crc32c as subdirectory as its CMakeLists.txt
+# messes with global CMAKE_* variables and global compiler options
+tr_add_external_auto_library(CRC32C Crc32c
+    TARGET Crc32c::crc32c
+    LIBNAME crc32c
+    SOURCE_DIR crc32c
+    CMAKE_ARGS
+        -DCRC32C_BUILD_TESTS=OFF
+        -DCRC32C_BUILD_BENCHMARKS=OFF
+        -DCRC32C_USE_GLOG=OFF
+        -DCRC32C_INSTALL=ON)
 
 tr_add_external_auto_library(FAST_FLOAT FastFloat
     SUBPROJECT
