@@ -1454,7 +1454,7 @@ jobs:
               -DENABLE_WERROR=ON \
               -DRUN_CLANG_TIDY=OFF \
               -DUSE_SYSTEM_B64=ON \
-              -DRUN_SYSTEM_CRC32C=ON \
+              -DUSE_SYSTEM_CRC32C=ON \
               -DUSE_SYSTEM_DEFLATE=ON \
               -DUSE_SYSTEM_EVENT2=ON \
               -DUSE_SYSTEM_FAST_FLOAT=ON \
@@ -1547,7 +1547,7 @@ jobs:
               -DENABLE_DEPRECATED=ON \
               -DENABLE_WERROR=ON \
               -DRUN_CLANG_TIDY=OFF \
-              -DRUN_SYSTEM_CRC32C=ON \
+              -DUSE_SYSTEM_CRC32C=ON \
               -DUSE_SYSTEM_DEFLATE=ON \
               -DUSE_SYSTEM_EVENT2=ON \
               -DUSE_SYSTEM_FAST_FLOAT=ON \
@@ -1738,7 +1738,7 @@ jobs:
               -DENABLE_WERROR=ON \
               -DRUN_CLANG_TIDY=OFF \
               -DUSE_SYSTEM_B64=ON \
-              -DRUN_SYSTEM_CRC32C=ON \
+              -DUSE_SYSTEM_CRC32C=ON \
               -DUSE_SYSTEM_DEFLATE=ON \
               -DUSE_SYSTEM_EVENT2=ON \
               -DUSE_SYSTEM_FAST_FLOAT=ON \
