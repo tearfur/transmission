@@ -1456,6 +1456,7 @@ jobs:
               -DUSE_SYSTEM_B64=ON \
               -DUSE_SYSTEM_CRC32C=ON \
               -DUSE_SYSTEM_DEFLATE=ON \
+              -DUSE_SYSTEM_DHT=ON \
               -DUSE_SYSTEM_EVENT2=ON \
               -DUSE_SYSTEM_FAST_FLOAT=ON \
               -DUSE_SYSTEM_FMT=ON \
@@ -1740,6 +1741,7 @@ jobs:
               -DUSE_SYSTEM_B64=ON \
               -DUSE_SYSTEM_CRC32C=ON \
               -DUSE_SYSTEM_DEFLATE=ON \
+              -DUSE_SYSTEM_DHT=OFF \
               -DUSE_SYSTEM_EVENT2=ON \
               -DUSE_SYSTEM_FAST_FLOAT=ON \
               -DUSE_SYSTEM_FMT=ON \
