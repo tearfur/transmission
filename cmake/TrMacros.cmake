@@ -107,6 +107,7 @@ macro(tr_get_fmt_version OVAR INCLUDE_DIR)
     find_file(_FMT_VERSION_H_PATH
         NAMES "fmt/base.h" "fmt/core.h"
         PATHS ${INCLUDE_DIR})
+    message("yattest: ${INCLUDE_DIR}, ${_FMT_VERSION_H_PATH}")
     file(READ "${_FMT_VERSION_H_PATH}" _FMT_VERSION_H)
     if(_FMT_VERSION_H MATCHES "FMT_VERSION ([0-9]+)([0-9][0-9])([0-9][0-9])")
         # Use math to skip leading zeros if any.
