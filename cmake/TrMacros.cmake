@@ -104,8 +104,11 @@ endmacro()
 
 macro(tr_get_fmt_version OVAR INCLUDE_DIR)
     unset(${OVAR})
-    file(READ "${INCLUDE_DIR}/fmt/base.h" _FMT_BASE_H)
-    if(_FMT_BASE_H MATCHES "FMT_VERSION ([0-9]+)([0-9][0-9])([0-9][0-9])")
+    find_file(_FMT_VERSION_H_PATH
+        NAMES "fmt/base.h" "fmt/core.h"
+        PATHS ${INCLUDE_DIR})
+    file(READ "${_FMT_VERSION_H_PATH}" _FMT_VERSION_H)
+    if(_FMT_VERSION_H MATCHES "FMT_VERSION ([0-9]+)([0-9][0-9])([0-9][0-9])")
         # Use math to skip leading zeros if any.
         math(EXPR _FMT_VERSION_MAJOR ${CMAKE_MATCH_1})
         math(EXPR _FMT_VERSION_MINOR ${CMAKE_MATCH_2})
