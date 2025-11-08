@@ -1284,7 +1284,7 @@ jobs:
     - name: Setup vcpkg
       uses: lukka/run-vcpkg@v11
       with:
-        vcpkgGitCommitId: 53bef8994c541b6561884a8395ea35715ece75db # 2024.01.12
+        vcpkgGitCommitId: 365f6444ab40ee87c73c947b475b3a267b3cb77c # 2025-11-08
 
     - name: Install vcpkg packages
       run: |
