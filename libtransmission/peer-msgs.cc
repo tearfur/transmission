@@ -1891,8 +1891,14 @@ ReadState tr_peerMsgsImpl::can_read(tr_peerIo* io, void* vmsgs, size_t* piece)
     // If we received piece data, then we might have quota to request new blocks
     if (*piece > 0U)
     {
-        msgs->update_desired_request_count();
-        msgs->maybe_send_block_requests();
+        msgs->session->queue_session_thread([ptr = msgs->weak_from_this()]()
+        {
+            if (auto const locked = ptr.lock())
+            {
+                locked->update_desired_request_count();
+                locked->maybe_send_block_requests();
+            }
+        });
     }
 
     return ret;
