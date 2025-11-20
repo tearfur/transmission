@@ -273,6 +273,7 @@ struct tr_incoming
     } while (0)
 
 #define logdbg(msgs, text) myLogMacro(msgs, TR_LOG_DEBUG, text)
+#define loginfo(msgs, text) myLogMacro(msgs, TR_LOG_INFO, text)
 #define logtrace(msgs, text) myLogMacro(msgs, TR_LOG_TRACE, text)
 #define logwarn(msgs, text) myLogMacro(msgs, TR_LOG_WARN, text)
 
@@ -1690,7 +1691,7 @@ ReadResult tr_peerMsgsImpl::read_piece_data(MessageReader& payload)
 
     if (!active_requests.test(block))
     {
-        logwarn(this, fmt::format("got unrequested block {:d} ({:d}:{:d}->{:d})", block, piece, offset, len));
+        loginfo(this, fmt::format("got unrequested block {:d} ({:d}:{:d}->{:d})", block, piece, offset, len));
         return { ReadState::Err, len };
     }
 
