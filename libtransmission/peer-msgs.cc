@@ -1692,6 +1692,7 @@ ReadResult tr_peerMsgsImpl::read_piece_data(MessageReader& payload)
     if (!active_requests.test(block))
     {
         loginfo(this, fmt::format("got unrequested block {:d} ({:d}:{:d}->{:d})", block, piece, offset, len));
+        publish(tr_peer_event::GotUnrequestedBlock(tor_.block_info(), block));
         return { ReadState::Err, len };
     }
 
