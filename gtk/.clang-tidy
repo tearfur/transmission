@@ -12,6 +12,7 @@ Checks: >
   -cppcoreguidelines-avoid-magic-numbers,
   -cppcoreguidelines-avoid-non-const-global-variables,
   -cppcoreguidelines-narrowing-conversions,
+  -cppcoreguidelines-use-enum-class,
   hicpp-*,
   misc-*,
   -misc-include-cleaner,
