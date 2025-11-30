@@ -33,7 +33,7 @@
 #include "gtest/gtest.h"
 #include "test-fixtures.h"
 
-#if !defined(__OpenBSD__)
+#ifndef __OpenBSD__
 #define HAVE_UNIFIED_BUFFER_CACHE
 #endif
 

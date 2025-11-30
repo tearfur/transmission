@@ -1393,7 +1393,7 @@ void tr_peerMsgsImpl::parse_ut_metadata(MessageReader& payload_in)
     }
 
     if (auto const piece_len = msg_end - serde.end();
-        msg_type == MetadataMsgType::Data && piece * MetadataPieceSize + piece_len <= total_size)
+        msg_type == MetadataMsgType::Data && (piece * MetadataPieceSize) + piece_len <= total_size)
     {
         tor_.set_metadata_piece(piece, serde.end(), piece_len);
     }

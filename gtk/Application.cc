@@ -591,8 +591,8 @@ void Application::Impl::on_startup()
         css_provider,
         GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 
-    FilterBar();
-    PathButton();
+    (void)FilterBar();
+    (void)PathButton();
 
     tr_session* session = nullptr;
 

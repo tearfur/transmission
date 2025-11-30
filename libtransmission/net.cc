@@ -101,7 +101,7 @@ tr_address_type tr_af_to_ip_protocol(int af)
 
 int tr_make_listen_socket_ipv6only(tr_socket_t const sock)
 {
-#if defined(IPV6_V6ONLY)
+#ifdef IPV6_V6ONLY
     int optval = 1;
     return setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<char const*>(&optval), sizeof(optval));
 #else

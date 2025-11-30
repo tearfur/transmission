@@ -812,7 +812,7 @@ Gtk::Window& gtr_widget_get_window(Gtk::Widget& widget)
         return *window;
     }
 
-#if defined(G_DISABLE_ASSERT)
+#ifdef G_DISABLE_ASSERT
     throw std::logic_error("Supplied widget doesn't have a window");
 #else
     g_assert_not_reached();
@@ -822,7 +822,7 @@ Gtk::Window& gtr_widget_get_window(Gtk::Widget& widget)
 void gtr_window_set_skip_taskbar_hint([[maybe_unused]] Gtk::Window& window, [[maybe_unused]] bool value)
 {
 #if GTK_CHECK_VERSION(4, 0, 0)
-#if defined(GDK_WINDOWING_X11)
+#ifdef GDK_WINDOWING_X11
     if (auto* const surface = Glib::unwrap(window.get_surface()); GDK_IS_X11_SURFACE(surface))
     {
         gdk_x11_surface_set_skip_taskbar_hint(surface, value ? TRUE : FALSE);
@@ -836,7 +836,7 @@ void gtr_window_set_skip_taskbar_hint([[maybe_unused]] Gtk::Window& window, [[ma
 void gtr_window_set_urgency_hint([[maybe_unused]] Gtk::Window& window, [[maybe_unused]] bool value)
 {
 #if GTK_CHECK_VERSION(4, 0, 0)
-#if defined(GDK_WINDOWING_X11)
+#ifdef GDK_WINDOWING_X11
     if (auto* const surface = Glib::unwrap(window.get_surface()); GDK_IS_X11_SURFACE(surface))
     {
         gdk_x11_surface_set_urgency_hint(surface, value ? TRUE : FALSE);

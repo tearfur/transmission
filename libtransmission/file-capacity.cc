@@ -297,7 +297,7 @@ extern "C"
 
 [[nodiscard]] tr_sys_path_capacity getquota(char const* device)
 {
-#if defined(__DragonFly__)
+#ifdef __DragonFly__
     struct ufs_dqblk dq = {};
 #else
     struct dqblk dq = {};

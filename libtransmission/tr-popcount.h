@@ -20,7 +20,7 @@
 #define TR_HAVE_STD_POPCOUNT
 #endif
 
-#if defined(TR_HAVE_STD_POPCOUNT)
+#ifdef TR_HAVE_STD_POPCOUNT
 #include <bit>
 #endif
 
@@ -39,7 +39,7 @@ struct tr_popcnt
     static_assert(sizeof(unsigned_T) == sizeof(T), "Unsigned type somehow smaller than signed type");
     static_assert(std::is_integral_v<unsigned_T> != 0, "Unsigned type somehow non integral");
 
-#if defined(TR_HAVE_STD_POPCOUNT)
+#ifdef TR_HAVE_STD_POPCOUNT
     /* If we have std::popcount just use that. */
     static constexpr unsigned count(T v)
     {

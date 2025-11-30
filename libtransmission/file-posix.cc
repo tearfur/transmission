@@ -32,7 +32,7 @@
 #endif
 
 /* OS-specific file copy (copy_file_range, sendfile64, or copyfile). */
-#if defined(__linux__)
+#ifdef __linux__
 #include <linux/version.h>
 /* Linux's copy_file_range(2) is buggy prior to 5.3. */
 #if defined(HAVE_COPY_FILE_RANGE) && LINUX_VERSION_CODE >= KERNEL_VERSION(5, 3, 0)
@@ -337,7 +337,7 @@ bool tr_sys_path_copy(char const* src_path, char const* dst_path, tr_error* erro
         error = &local_error;
     }
 
-#if defined(USE_COPYFILE)
+#ifdef USE_COPYFILE
     if (copyfile(src_path, dst_path, nullptr, COPYFILE_CLONE | COPYFILE_ALL) < 0)
     {
         error->set_from_errno(errno);
@@ -378,7 +378,7 @@ bool tr_sys_path_copy(char const* src_path, char const* dst_path, tr_error* erro
     uint64_t file_size = info->size;
     int errno_cpy = 0; /* keep errno intact across copy attempts */
 
-#if defined(USE_COPY_FILE_RANGE)
+#ifdef USE_COPY_FILE_RANGE
 
     /* Kernel copy by copy_file_range */
     /* try this first if available, no need to check previous copy attempts */
@@ -413,7 +413,7 @@ bool tr_sys_path_copy(char const* src_path, char const* dst_path, tr_error* erro
 
 #endif /* USE_COPY_FILE_RANGE */
 
-#if defined(USE_SENDFILE64)
+#ifdef USE_SENDFILE64
 
     /* Kernel copy by sendfile64 */
     /* if file_size>0 and errno_cpy==0, we probably never entered any previous copy attempt, also: */
@@ -916,7 +916,7 @@ bool tr_sys_file_lock([[maybe_unused]] tr_sys_file_t handle, [[maybe_unused]] in
     TR_ASSERT((operation & ~(TR_SYS_FILE_LOCK_SH | TR_SYS_FILE_LOCK_EX | TR_SYS_FILE_LOCK_NB)) == 0);
     TR_ASSERT(!!(operation & TR_SYS_FILE_LOCK_SH) + !!(operation & TR_SYS_FILE_LOCK_EX) == 1);
 
-#if defined(F_OFD_SETLK)
+#ifdef F_OFD_SETLK
 
     struct flock fl = {};
 

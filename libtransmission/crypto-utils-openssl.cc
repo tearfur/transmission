@@ -28,7 +28,7 @@
 #include "libtransmission/tr-macros.h" // tr_sha1_digest_t, tr_sha25...
 #include "libtransmission/utils.h"
 
-#if !defined(WITH_OPENSSL)
+#ifndef WITH_OPENSSL
 #error OPENSSL module
 #endif
 

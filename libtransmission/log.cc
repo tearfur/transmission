@@ -77,7 +77,7 @@ void logAddImpl(
 
     auto const lock = log_state.unique_lock();
 
-#if defined(__ANDROID__)
+#ifdef __ANDROID__
 
     int prio;
 

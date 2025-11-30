@@ -18,7 +18,7 @@
 #include "libtransmission/tr-macros.h" // tr_sha1_digest_t, tr_sha256_d...
 #include "libtransmission/tr-strbuf.h"
 
-#if defined(WITH_CCRYPTO)
+#ifdef WITH_CCRYPTO
 #include <CommonCrypto/CommonDigest.h>
 using tr_sha1_context_t = CC_SHA1_CTX;
 using tr_sha256_context_t = CC_SHA256_CTX;
