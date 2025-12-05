@@ -385,8 +385,8 @@ size_t tr_peerIo::try_read(size_t max)
         return {};
     }
 
-    // Do not write more than the bandwidth allows.
-    // If there is no bandwidth left available, disable writes.
+    // Do not read more than the bandwidth allows.
+    // If there is no bandwidth left available, disable read.
     max = bandwidth().clamp(Dir, max);
     if (max == 0U)
     {
