@@ -196,7 +196,11 @@ void tr_peerIo::set_socket(std::unique_ptr<tr_peer_socket> socket_in)
 
 void tr_peerIo::close()
 {
-    socket_.reset();
+    if (socket_)
+    {
+        tr_logAddTraceIo(this, "closing tr_peerIo");
+        socket_.reset();
+    }
     inbuf_.clear();
     outbuf_.clear();
     outbuf_info_.clear();

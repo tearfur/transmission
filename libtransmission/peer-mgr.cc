@@ -2784,7 +2784,7 @@ void initiate_connection(tr_peerMgr* mgr, tr_swarm* s, tr_peer_info& peer_info)
 
     tr_logAddTraceSwarm(
         s,
-        fmt::format("Starting an OUTGOING {} connection with {}", utp ? " µTP" : "TCP", peer_info.display_name()));
+        fmt::format("Starting an OUTGOING {} connection with {}", utp ? "µTP" : "TCP", peer_info.display_name()));
 
     auto peer_io = tr_peerIo::new_outgoing(
         session,
