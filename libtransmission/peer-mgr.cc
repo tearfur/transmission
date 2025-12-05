@@ -1448,24 +1448,24 @@ void create_bit_torrent_peer(
 } // namespace handshake_helpers
 } // namespace
 
-void tr_peerMgrAddIncoming(tr_peerMgr* manager, tr_peer_socket&& socket)
+void tr_peerMgrAddIncoming(tr_peerMgr* manager, std::unique_ptr<tr_peer_socket> socket)
 {
     using namespace handshake_helpers;
 
     auto const lock = manager->unique_lock();
 
-    if (manager->blocklists_.contains(socket.address()))
+    if (manager->blocklists_.contains(socket->address()))
     {
-        tr_logAddTrace(fmt::format("Banned IP address '{}' tried to connect to us", socket.display_name()));
-        socket.close();
+        tr_logAddTrace(fmt::format("Banned IP address '{}' tried to connect to us", socket->display_name()));
+        socket.reset();
     }
-    else if (manager->incoming_handshakes.count(socket.socket_address()) != 0U)
+    else if (manager->incoming_handshakes.count(socket->socket_address()) != 0U)
     {
-        socket.close();
+        socket.reset();
     }
     else // we don't have a connection to them yet...
     {
-        auto const socket_address = socket.socket_address();
+        auto const& socket_address = socket->socket_address();
         auto* const session = manager->session;
         manager->incoming_handshakes.try_emplace(
             socket_address,
@@ -2784,7 +2784,7 @@ void initiate_connection(tr_peerMgr* mgr, tr_swarm* s, tr_peer_info& peer_info)
 
     tr_logAddTraceSwarm(
         s,
-        fmt::format("Starting an OUTGOING {} connection with {}", utp ? " µTP" : "TCP", peer_info.display_name()));
+        fmt::format("Starting an OUTGOING {} connection with {}", utp ? "µTP" : "TCP", peer_info.display_name()));
 
     auto peer_io = tr_peerIo::new_outgoing(
         session,
