@@ -22,6 +22,7 @@
 #include "libtransmission/tr-buffer.h"
 
 #define tr_logAddErrorSock(sock, msg) tr_logAddError(msg, (sock)->display_name())
+#define tr_logAddInfoSock(sock, msg) tr_logAddInfo(msg, (sock)->display_name())
 #define tr_logAddTraceSock(sock, msg) tr_logAddTrace(msg, (sock)->display_name())
 
 namespace
@@ -82,7 +83,7 @@ public:
         utp_close(sock_);
     }
 
-    Type type() const noexcept override
+    [[nodiscard]] Type type() const noexcept override
     {
         return Type::UTP;
     }
@@ -97,12 +98,12 @@ public:
         is_write_enabled_ = enabled;
     }
 
-    bool is_read_enabled() const override
+    [[nodiscard]] bool is_read_enabled() const override
     {
         return is_read_enabled_;
     }
 
-    bool is_write_enabled() const override
+    [[nodiscard]] bool is_write_enabled() const override
     {
         return is_write_enabled_;
     }
@@ -276,17 +277,23 @@ void tr_peer_socket_utp::utp_init([[maybe_unused]] struct_utp_context* ctx)
             {
                 s->read_buffer().add(args->buf, args->len);
 
+                auto const old = s->read_buffer_size();
+
                 // drain the "OS buffer" until we either run out of data or
                 // run out of bandwidth
+                tr_logAddInfoSock(s, fmt::format("read enabled {}", s->is_read_enabled()));
                 while (s->is_read_enabled())
                 {
                     auto const old_size = s->read_buffer_size();
                     s->read_cb();
+                    tr_logAddInfoSock(s, fmt::format("in loop size {} -> {}", old_size, s->read_buffer_size()));
                     if (s->read_buffer_size() == old_size)
                     {
                         break;
                     }
                 }
+
+                tr_logAddInfoSock(s, fmt::format("len: {}, size: {} -> {}", args->len, old, s->read_buffer_size()));
 
                 // utp_read_drained() notifies libutp that we read a packet from them.
                 // It opens up the congestion window by sending an ACK (soonish) if
@@ -303,6 +310,13 @@ void tr_peer_socket_utp::utp_init([[maybe_unused]] struct_utp_context* ctx)
         {
             if (auto const* const s = static_cast<tr_peer_socket_utp_impl*>(utp_get_userdata(args->socket)); s != nullptr)
             {
+                auto const rcvbuf = utp_getsockopt(args->socket, UTP_RCVBUF);
+                tr_logAddInfoSock(
+                    s,
+                    fmt::format(
+                        "utp buffer size: {}, {:.2f}% full",
+                        s->read_buffer_size(),
+                        static_cast<double>(s->read_buffer_size()) / rcvbuf * 100.0));
                 return s->read_buffer_size();
             }
             return {};

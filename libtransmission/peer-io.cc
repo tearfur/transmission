@@ -35,6 +35,7 @@ struct sockaddr;
 
 #define tr_logAddErrorIo(io, msg) tr_logAddError(msg, (io)->display_name())
 #define tr_logAddWarnIo(io, msg) tr_logAddWarn(msg, (io)->display_name())
+#define tr_logAddInfoIo(io, msg) tr_logAddInfo(msg, (io)->display_name())
 #define tr_logAddDebugIo(io, msg) tr_logAddDebug(msg, (io)->display_name())
 #define tr_logAddTraceIo(io, msg) tr_logAddTrace(msg, (io)->display_name())
 
@@ -171,8 +172,10 @@ void tr_peerIo::set_socket(std::unique_ptr<tr_peer_socket> socket_in)
     socket_->set_read_cb(
         [weak = weak_from_this()]()
         {
+            tr_logAddInfo("in tr_peerIo read callback");
             if (auto const io = weak.lock(); io)
             {
+                tr_logAddInfoIo(io, "locked tr_peerIo read callback");
                 io->read_cb();
             }
         });
@@ -394,6 +397,7 @@ size_t tr_peerIo::try_read(size_t max)
     max = bandwidth().clamp(Dir, max);
     if (max == 0U)
     {
+        tr_logAddInfoIo(this, "ran out of bandwidth");
         set_enabled(Dir, false);
         return {};
     }

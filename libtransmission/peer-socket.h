@@ -109,13 +109,7 @@ protected:
     [[nodiscard]] virtual size_t try_read_impl(InBuf& buf, size_t max, tr_error* error) = 0;
     [[nodiscard]] virtual size_t try_write_impl(OutBuf& buf, size_t max, tr_error* error) = 0;
 
-    void read_cb() const
-    {
-        if (read_cb_)
-        {
-            read_cb_();
-        }
-    }
+    void read_cb() const;
     void write_cb() const
     {
         if (write_cb_)

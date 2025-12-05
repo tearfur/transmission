@@ -45,3 +45,13 @@ bool tr_peer_socket::limit_reached(tr_session const* const session) noexcept
 {
     return n_open_sockets.load() >= session->peerLimit();
 }
+
+void tr_peer_socket::read_cb() const
+{
+    if (read_cb_)
+    {
+        tr_logAddInfo("calling read_cb", display_name());
+        read_cb_();
+    }
+}
+
