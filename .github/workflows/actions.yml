@@ -1338,8 +1338,8 @@ jobs:
       fail-fast: false
       matrix:
         release:
+          - 15.0
           - 14.3
-          - 13.5
         arch:
           - x86_64
           - aarch64
