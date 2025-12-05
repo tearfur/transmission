@@ -3,11 +3,20 @@
 // or any future license endorsed by Mnemosyne LLC.
 // License text can be found in the licenses/ folder.
 
+#include <limits>
+
+#ifdef _WIN32
+#include <ws2tcpip.h>
+#else
+#include <sys/socket.h>
+#endif
+
 #include <fmt/format.h>
 
 #include <libutp/utp.h>
 
 #include "libtransmission/log.h"
+#include "libtransmission/net.h"
 #include "libtransmission/peer-socket-utp.h"
 #include "libtransmission/tr-assert.h"
 #include "libtransmission/tr-buffer.h"
@@ -18,6 +27,42 @@
 namespace
 {
 #ifdef WITH_UTP
+void max_bufsize(tr_socket_t const fd, int const optname, int& ret)
+{
+    static auto constexpr IntMax = std::numeric_limits<int>::max();
+    if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &IntMax, sizeof(IntMax)) < 0)
+    {
+        tr_logAddDebug(fmt::format("Unable to set SO_RCVBUF to max on socket {}: {}", fd, tr_net_strerror(sockerrno)));
+    }
+
+    auto tmp = int{};
+    socklen_t len = sizeof(tmp);
+    if (getsockopt(fd, SOL_SOCKET, optname, reinterpret_cast<char*>(&tmp), &len) == 0)
+    {
+        ret = std::max(tmp, ret);
+    }
+}
+
+int max_udp_bufsize(int const optname)
+{
+    auto ret = int{ -1 };
+
+    if (auto const fd = socket(PF_INET, SOCK_DGRAM, 0); fd != TR_BAD_SOCKET)
+    {
+        max_bufsize(fd, optname, ret);
+        tr_net_close_socket(fd);
+    }
+
+    if (auto const fd = socket(PF_INET6, SOCK_DGRAM, 0); fd != TR_BAD_SOCKET)
+    {
+        max_bufsize(fd, optname, ret);
+        tr_net_close_socket(fd);
+    }
+
+    tr_logAddTrace(fmt::format("max UDP option {} was {}", optname, ret));
+    return ret;
+}
+
 class tr_peer_socket_utp_impl final : public tr_peer_socket_utp
 {
 public:
@@ -169,6 +214,8 @@ private:
 
     UTPSocket* sock_;
 
+    // This buffer acts in place of the OS's receive buffer.
+    // Care should be taken to have it mimic that behaviour.
     PeerBuffer inbuf_;
 
     bool is_read_enabled_ = false;
@@ -207,7 +254,15 @@ std::unique_ptr<tr_peer_socket_utp> tr_peer_socket_utp::create(tr_socket_address
 void tr_peer_socket_utp::utp_init([[maybe_unused]] struct_utp_context* ctx)
 {
 #ifdef WITH_UTP
-    utp_context_set_option(ctx, UTP_RCVBUF, RcvBuf);
+    // Mimic OS UDP socket buffer
+    if (auto const rcvbuf = max_udp_bufsize(SO_RCVBUF); rcvbuf > 0)
+    {
+        utp_context_set_option(ctx, UTP_RCVBUF, rcvbuf);
+    }
+    if (auto const sndbuf = max_udp_bufsize(SO_SNDBUF); sndbuf > 0)
+    {
+        utp_context_set_option(ctx, UTP_SNDBUF, sndbuf);
+    }
 
     // note: all the callback handlers here need to check `userdata` for nullptr
     // because libutp can fire callbacks on a socket after utp_close() is called
@@ -220,7 +275,18 @@ void tr_peer_socket_utp::utp_init([[maybe_unused]] struct_utp_context* ctx)
             if (auto* const s = static_cast<tr_peer_socket_utp_impl*>(utp_get_userdata(args->socket)); s != nullptr)
             {
                 s->read_buffer().add(args->buf, args->len);
-                s->read_cb();
+
+                // drain the "OS buffer" until we either run out of data or
+                // run out of bandwidth
+                while (s->is_read_enabled())
+                {
+                    auto const old_size = s->read_buffer_size();
+                    s->read_cb();
+                    if (s->read_buffer_size() == old_size)
+                    {
+                        break;
+                    }
+                }
 
                 // utp_read_drained() notifies libutp that we read a packet from them.
                 // It opens up the congestion window by sending an ACK (soonish) if
