@@ -25,10 +25,6 @@ struct tr_session;
 class tr_peer_socket
 {
 public:
-    // Our target socket receive buffer size.
-    // Gets read from the socket buffer into the incoming PeerBuffer.
-    static constexpr auto RcvBuf = size_t{ 256 * 1024 };
-
     // The buffer size for incoming & outgoing peer messages.
     // Starts off with enough capacity to read a single BT Piece message,
     // but has a 5x GrowthFactor so that it can quickly to high volume.

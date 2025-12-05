@@ -308,7 +308,10 @@ public:
     }
 
 private:
-    static constexpr auto RcvBuf = tr_peer_socket::RcvBuf;
+    // Our target socket receive buffer size.
+    // Gets read from the socket buffer into the incoming PeerBuffer.
+    static constexpr auto RcvBuf = size_t{ 256 * 1024 };
+
     using PeerBuffer = tr_peer_socket::PeerBuffer;
 
     friend class libtransmission::test::HandshakeTest;
