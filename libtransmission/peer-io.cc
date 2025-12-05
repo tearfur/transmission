@@ -157,7 +157,6 @@ tr_peerIo::~tr_peerIo()
     auto const lock = session_->unique_lock();
 
     clear_callbacks();
-    tr_logAddTraceIo(this, "in tr_peerIo destructor");
     close();
 }
 
