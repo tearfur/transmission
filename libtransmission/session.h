@@ -1267,11 +1267,11 @@ private:
     friend char const* tr_sessionGetRPCUsername(tr_session const* session);
     friend char const* tr_sessionGetRPCWhitelist(tr_session const* session);
     friend size_t tr_blocklistGetRuleCount(tr_session const* session);
-    friend size_t tr_blocklistSetContent(tr_session* session, char const* content_filename);
     friend size_t tr_sessionGetAltSpeedBegin(tr_session const* session);
     friend size_t tr_sessionGetAltSpeedEnd(tr_session const* session);
     friend size_t tr_sessionGetCacheLimit_MB(tr_session const* session);
     friend size_t tr_sessionGetAltSpeed_KBps(tr_session const* session, tr_direction dir);
+    friend std::optional<size_t> tr_blocklistSetContent(tr_session* session, char const* content_filename);
     friend tr_port_forwarding_state tr_sessionGetPortForwarding(tr_session const* session);
     friend tr_sched_day tr_sessionGetAltSpeedDay(tr_session const* session);
     friend tr_session* tr_sessionInit(

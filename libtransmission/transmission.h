@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <ctime>
 #include <functional>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -701,7 +702,7 @@ void tr_sessionSetScriptEnabled(tr_session* session, TrScript type, bool enabled
  *
  * Passing nullptr for a filename will clear the blocklist.
  */
-size_t tr_blocklistSetContent(tr_session* session, char const* content_filename);
+std::optional<size_t> tr_blocklistSetContent(tr_session* session, char const* content_filename);
 
 size_t tr_blocklistGetRuleCount(tr_session const* session);
 
