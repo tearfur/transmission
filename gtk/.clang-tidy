@@ -1,30 +1,40 @@
 ---
 HeaderFilterRegex: .*/gtk/.*
 
-Checks: >
-  -*,
-  bugprone-*,
-  -bugprone-narrowing-conversions,
-  cert-*,
-  -cert-int09-c,
-  cppcoreguidelines-*,
-  -cppcoreguidelines-avoid-const-or-ref-data-members,
-  -cppcoreguidelines-avoid-magic-numbers,
-  -cppcoreguidelines-avoid-non-const-global-variables,
-  -cppcoreguidelines-narrowing-conversions,
-  hicpp-*,
-  misc-*,
-  -misc-include-cleaner,
-  modernize-*,
-  -modernize-use-trailing-return-type,
-  performance-*,
-  readability-*,
-  -readability-enum-initial-value,
-  -readability-function-cognitive-complexity,
-  -readability-identifier-length,
-  -readability-magic-numbers,
-  -readability-qualified-auto,
-  -readability-redundant-access-specifiers
+Checks:
+  - bugprone-*
+  - -bugprone-easily-swappable-parameters
+  - -bugprone-narrowing-conversions
+  - cert-*
+  - -cert-int09-c
+  - clang-analyzer-optin*
+  # TODO: enable `clang-analyzer-optin.core.EnumCastOutOfRange` after https://github.com/llvm/llvm-project/issues/179094 is fixed
+  - -clang-analyzer-optin.core.EnumCastOutOfRange
+  - cppcoreguidelines-*
+  - -cppcoreguidelines-avoid-const-or-ref-data-members
+  - -cppcoreguidelines-avoid-magic-numbers
+  - -cppcoreguidelines-avoid-non-const-global-variables
+  - -cppcoreguidelines-narrowing-conversions
+  - -cppcoreguidelines-pro-bounds-array-to-pointer-decay
+  - -cppcoreguidelines-pro-bounds-constant-array-index
+  - hicpp-*
+  - -hicpp-no-array-decay
+  - -hicpp-special-member-functions
+  - misc-*
+  - -misc-include-cleaner
+  - modernize-*
+  - -modernize-use-designated-initializers
+  - -modernize-use-ranges
+  - -modernize-use-trailing-return-type
+  - performance-*
+  - readability-*
+  - -readability-container-contains
+  - -readability-enum-initial-value
+  - -readability-function-cognitive-complexity
+  - -readability-identifier-length
+  - -readability-magic-numbers
+  - -readability-qualified-auto
+  - -readability-redundant-access-specifiers
 
 CheckOptions:
   - { key: cppcoreguidelines-avoid-do-while.IgnoreMacros, value: true }
