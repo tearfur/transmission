@@ -50,7 +50,7 @@ FilterBarComboBox* FilterBar::createActivityCombo()
     model->appendRow(row);
 
     model->appendRow(new QStandardItem{}); // separator
-    FilterBarComboBoxDelegate::setSeparator(model, model->index(1, 0));
+    FilterBarComboBoxDelegate::set_separator(model, model->index(1, 0));
 
     auto add_row = [model](auto const show_mode, QString const& label, std::optional<icons::Type> const type)
     {
@@ -192,7 +192,7 @@ FilterBarComboBox* FilterBar::createTrackerCombo(QStandardItemModel* model)
     model->appendRow(row);
 
     model->appendRow(new QStandardItem{}); // separator
-    FilterBarComboBoxDelegate::setSeparator(model, model->index(1, 0));
+    FilterBarComboBoxDelegate::set_separator(model, model->index(1, 0));
 
     c->setModel(model);
     return c;

@@ -48,10 +48,10 @@ FileTreeView::FileTreeView(QWidget* parent, bool is_editable)
 
     connect(this, &QAbstractItemView::clicked, this, &FileTreeView::onClicked);
 
-    connect(model_, &FileTreeModel::openRequested, this, &FileTreeView::openRequested);
-    connect(model_, &FileTreeModel::pathEdited, this, &FileTreeView::pathEdited);
-    connect(model_, &FileTreeModel::priorityChanged, this, &FileTreeView::priorityChanged);
-    connect(model_, &FileTreeModel::wantedChanged, this, &FileTreeView::wantedChanged);
+    connect(model_, &FileTreeModel::open_requested, this, &FileTreeView::open_requested);
+    connect(model_, &FileTreeModel::path_edited, this, &FileTreeView::path_edited);
+    connect(model_, &FileTreeModel::priority_changed, this, &FileTreeView::priority_changed);
+    connect(model_, &FileTreeModel::wanted_changed, this, &FileTreeView::wanted_changed);
 }
 
 void FileTreeView::onClicked(QModelIndex const& proxy_index)
@@ -60,11 +60,11 @@ void FileTreeView::onClicked(QModelIndex const& proxy_index)
 
     if (model_index.column() == FileTreeModel::COL_WANTED)
     {
-        model_->twiddleWanted(QModelIndexList{} << model_index);
+        model_->twiddle_wanted(QModelIndexList{} << model_index);
     }
     else if (model_index.column() == FileTreeModel::COL_PRIORITY)
     {
-        model_->twiddlePriority(QModelIndexList{} << model_index);
+        model_->twiddle_priority(QModelIndexList{} << model_index);
     }
 }
 
@@ -120,11 +120,11 @@ void FileTreeView::resizeEvent(QResizeEvent* event)
 
         for (QString const& item_text : item_texts)
         {
-            item_width = std::max(item_width, Utils::measureViewItem(this, item_text));
+            item_width = std::max(item_width, Utils::measure_view_item(this, item_text));
         }
 
         QString const header_text = model_->headerData(column, Qt::Horizontal).toString();
-        int const header_width = Utils::measureHeaderItem(this->header(), header_text);
+        int const header_width = Utils::measure_header_item(this->header(), header_text);
 
         int const width = std::max({ min_width, item_width, header_width });
         setColumnWidth(column, width);
@@ -146,13 +146,13 @@ void FileTreeView::keyPressEvent(QKeyEvent* event)
 
         if (modifiers == Qt::NoModifier)
         {
-            model_->twiddleWanted(selectedSourceRows());
+            model_->twiddle_wanted(selectedSourceRows());
             return;
         }
 
         if (modifiers == Qt::ShiftModifier)
         {
-            model_->twiddlePriority(selectedSourceRows());
+            model_->twiddle_priority(selectedSourceRows());
             return;
         }
     }
@@ -197,7 +197,7 @@ void FileTreeView::update(FileList const& files, bool update_fields)
 
     for (TorrentFile const& file : files)
     {
-        model_->addFile(file.index, file.filename, file.wanted, file.priority, file.size, file.have, update_fields);
+        model_->add_file(file.index, file.filename, file.wanted, file.priority, file.size, file.have, update_fields);
     }
 
     if (model_was_empty)
@@ -215,7 +215,7 @@ void FileTreeView::clear()
 
 void FileTreeView::setEditable(bool editable)
 {
-    model_->setEditable(editable);
+    model_->set_editable(editable);
 }
 
 bool FileTreeView::edit(QModelIndex const& index, EditTrigger trigger, QEvent* event)
@@ -237,12 +237,12 @@ bool FileTreeView::edit(QModelIndex const& index, EditTrigger trigger, QEvent* e
 
 void FileTreeView::checkSelectedItems()
 {
-    model_->setWanted(selectedSourceRows(), true);
+    model_->set_wanted(selectedSourceRows(), true);
 }
 
 void FileTreeView::uncheckSelectedItems()
 {
-    model_->setWanted(selectedSourceRows(), false);
+    model_->set_wanted(selectedSourceRows(), false);
 }
 
 void FileTreeView::onlyCheckSelectedItems()
@@ -255,7 +255,7 @@ void FileTreeView::onlyCheckSelectedItems()
     }
 
     QModelIndexList wanted_indices = selectedSourceRows();
-    model_->setWanted(wanted_indices, true);
+    model_->set_wanted(wanted_indices, true);
 
     std::sort(wanted_indices.begin(), wanted_indices.end());
 
@@ -311,19 +311,19 @@ void FileTreeView::onlyCheckSelectedItems()
         }
     }
 
-    model_->setWanted(unwanted_indices, false);
+    model_->set_wanted(unwanted_indices, false);
 }
 
 void FileTreeView::setSelectedItemsPriority()
 {
     auto const* action = qobject_cast<QAction const*>(sender());
     assert(action != nullptr);
-    model_->setPriority(selectedSourceRows(), action->property(PriorityKey).toInt());
+    model_->set_priority(selectedSourceRows(), action->property(PriorityKey).toInt());
 }
 
 bool FileTreeView::openSelectedItem()
 {
-    return model_->openFile(proxy_->mapToSource(currentIndex()));
+    return model_->open_file(proxy_->mapToSource(currentIndex()));
 }
 
 void FileTreeView::renameSelectedItem()

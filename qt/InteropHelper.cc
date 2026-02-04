@@ -11,11 +11,11 @@ bool InteropHelper::isConnected() const
 {
 #if defined(ENABLE_DBUS_INTEROP) && defined(ENABLE_COM_INTEROP)
 
-    return dbus_client_.isConnected() || com_client_.isConnected();
+    return dbus_client_.is_connected() || com_client_.isConnected();
 
 #elif defined(ENABLE_DBUS_INTEROP)
 
-    return dbus_client_.isConnected();
+    return dbus_client_.is_connected();
 
 #elif defined(ENABLE_COM_INTEROP)
 
@@ -32,11 +32,11 @@ bool InteropHelper::addMetainfo(QString const& metainfo) const
 {
 #if defined(ENABLE_DBUS_INTEROP) && defined(ENABLE_COM_INTEROP)
 
-    return dbus_client_.addMetainfo(metainfo).toBool() || com_client_.addMetainfo(metainfo).toBool();
+    return dbus_client_.add_metainfo(metainfo).toBool() || com_client_.addMetainfo(metainfo).toBool();
 
 #elif defined(ENABLE_DBUS_INTEROP)
 
-    return dbus_client_.addMetainfo(metainfo).toBool();
+    return dbus_client_.add_metainfo(metainfo).toBool();
 
 #elif defined(ENABLE_COM_INTEROP)
 
@@ -59,7 +59,7 @@ void InteropHelper::initialize()
 void InteropHelper::registerObject(QObject* parent)
 {
 #ifdef ENABLE_DBUS_INTEROP
-    DBusInteropHelper::registerObject(parent);
+    DBusInteropHelper::register_object(parent);
 #endif
 
 #ifdef ENABLE_COM_INTEROP

@@ -20,7 +20,7 @@
 namespace
 {
 
-QString getNameFromMetainfo(QByteArray const& benc)
+QString get_name_from_metainfo(QByteArray const& benc)
 {
     if (auto metainfo = tr_torrent_metainfo{}; metainfo.parse_benc({ benc.constData(), static_cast<size_t>(benc.size()) }))
     {
@@ -30,7 +30,7 @@ QString getNameFromMetainfo(QByteArray const& benc)
     return {};
 }
 
-QString getNameFromMagnet(QString const& magnet)
+QString get_name_from_magnet(QString const& magnet)
 {
     auto tmp = tr_magnet_metainfo{};
 
@@ -85,12 +85,12 @@ AddData::Type AddData::set(QString const& key)
     return type;
 }
 
-QByteArray AddData::toBase64() const
+QByteArray AddData::to_base64() const
 {
     return metainfo.toBase64();
 }
 
-QString AddData::readableName() const
+QString AddData::readable_name() const
 {
     switch (type)
     {
@@ -98,20 +98,20 @@ QString AddData::readableName() const
         return filename;
 
     case MAGNET:
-        return getNameFromMagnet(magnet);
+        return get_name_from_magnet(magnet);
 
     case URL:
         return url.toString();
 
     case METAINFO:
-        return getNameFromMetainfo(metainfo);
+        return get_name_from_metainfo(metainfo);
 
     default: // NONE
         return {};
     }
 }
 
-QString AddData::readableShortName() const
+QString AddData::readable_short_name() const
 {
     switch (type)
     {
@@ -122,11 +122,11 @@ QString AddData::readableShortName() const
         return url.path().split(QLatin1Char('/')).last();
 
     default:
-        return readableName();
+        return readable_name();
     }
 }
 
-void AddData::disposeSourceFile() const
+void AddData::dispose_source_file() const
 {
     auto file = QFile{ filename };
     if (!disposal_ || !file.exists())

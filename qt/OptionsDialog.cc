@@ -58,7 +58,7 @@ OptionsDialog::OptionsDialog(Session& session, Prefs const& prefs, AddData addme
     else
     {
         ui_.sourceStack->setCurrentWidget(ui_.sourceEdit);
-        ui_.sourceEdit->setText(add_.readableName());
+        ui_.sourceEdit->setText(add_.readable_name());
         ui_.sourceEdit->selectAll();
         connect(ui_.sourceEdit, &QLineEdit::editingFinished, this, &OptionsDialog::onSourceChanged);
     }
@@ -70,7 +70,7 @@ OptionsDialog::OptionsDialog(Session& session, Prefs const& prefs, AddData addme
     int const width = font_metrics.size(0, QStringLiteral("This is a pretty long torrent filename indeed.torrent")).width();
     ui_.sourceStack->setMinimumWidth(width);
 
-    auto const download_dir = Utils::removeTrailingDirSeparator(prefs.get<QString>(Prefs::DOWNLOAD_DIR));
+    auto const download_dir = Utils::remove_trailing_dir_separator(prefs.get<QString>(Prefs::DOWNLOAD_DIR));
     ui_.freeSpaceLabel->setSession(session_);
     ui_.freeSpaceLabel->setPath(download_dir);
 
@@ -100,8 +100,8 @@ OptionsDialog::OptionsDialog(Session& session, Prefs const& prefs, AddData addme
     connect(ui_.dialogButtons, &QDialogButtonBox::rejected, this, &QObject::deleteLater);
     connect(ui_.dialogButtons, &QDialogButtonBox::accepted, this, &OptionsDialog::onAccepted);
 
-    connect(ui_.filesView, &FileTreeView::priorityChanged, this, &OptionsDialog::onPriorityChanged);
-    connect(ui_.filesView, &FileTreeView::wantedChanged, this, &OptionsDialog::onWantedChanged);
+    connect(ui_.filesView, &FileTreeView::priority_changed, this, &OptionsDialog::onPriorityChanged);
+    connect(ui_.filesView, &FileTreeView::wanted_changed, this, &OptionsDialog::onWantedChanged);
 
     connect(&session_, &Session::sessionUpdated, this, &OptionsDialog::onSessionUpdated);
 
@@ -299,7 +299,7 @@ void OptionsDialog::onAccepted()
     }
 
     auto const disposal = ui_.trashCheck->isChecked() ? AddData::FilenameDisposal::Delete : AddData::FilenameDisposal::NoAction;
-    add_.setFileDisposal(disposal);
+    add_.set_file_disposal(disposal);
 
     session_.addTorrent(add_, &args);
 
@@ -312,7 +312,7 @@ void OptionsDialog::onSourceChanged()
     {
         add_.set(ui_.sourceButton->path());
     }
-    else if (auto const text = ui_.sourceEdit->text(); text != add_.readableName())
+    else if (auto const text = ui_.sourceEdit->text(); text != add_.readable_name())
     {
         add_.set(text);
     }

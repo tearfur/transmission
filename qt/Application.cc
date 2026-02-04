@@ -429,7 +429,7 @@ void Application::addWatchdirTorrent(QString const& filename) const
     auto add_data = AddData{ filename };
     auto const disposal = prefs_.get<bool>(Prefs::TRASH_ORIGINAL) ? AddData::FilenameDisposal::Delete :
                                                                     AddData::FilenameDisposal::Rename;
-    add_data.setFileDisposal(disposal);
+    add_data.set_file_disposal(disposal);
     addTorrent(std::move(add_data));
 }
 
@@ -442,9 +442,9 @@ void Application::addTorrent(AddData addme) const
 
     // if there's not already a disposal action set,
     // then honor the `trash original` preference setting
-    if (!addme.fileDisposal() && prefs_.get<bool>(Prefs::TRASH_ORIGINAL))
+    if (!addme.file_disposal() && prefs_.get<bool>(Prefs::TRASH_ORIGINAL))
     {
-        addme.setFileDisposal(AddData::FilenameDisposal::Delete);
+        addme.set_file_disposal(AddData::FilenameDisposal::Delete);
     }
 
     if (!prefs_.get<bool>(Prefs::OPTIONS_PROMPT))

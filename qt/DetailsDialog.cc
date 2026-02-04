@@ -129,8 +129,8 @@ int measureViewItem(QTreeWidget const* view, int column, QString const& text)
 {
     QTreeWidgetItem const* header_item = view->headerItem();
 
-    auto const item_width = Utils::measureViewItem(view, text);
-    auto const header_width = Utils::measureHeaderItem(view->header(), header_item->text(column));
+    auto const item_width = Utils::measure_view_item(view, text);
+    auto const header_width = Utils::measure_header_item(view->header(), header_item->text(column));
 
     return std::max(item_width, header_width);
 }
@@ -495,11 +495,11 @@ void DetailsDialog::refreshUI()
         bool is_mixed = false;
         bool all_paused = true;
         bool all_finished = true;
-        tr_torrent_activity const baseline = torrents[0]->getActivity();
+        tr_torrent_activity const baseline = torrents[0]->get_activity();
 
         for (Torrent const* const t : torrents)
         {
-            tr_torrent_activity const activity = t->getActivity();
+            tr_torrent_activity const activity = t->get_activity();
 
             if (activity != baseline)
             {
@@ -511,7 +511,7 @@ void DetailsDialog::refreshUI()
                 all_paused = all_finished = false;
             }
 
-            if (!t->isFinished())
+            if (!t->is_finished())
             {
                 all_finished = false;
             }
@@ -531,7 +531,7 @@ void DetailsDialog::refreshUI()
         }
         else
         {
-            string = torrents[0]->activityString();
+            string = torrents[0]->activity_string();
         }
     }
 
@@ -554,14 +554,14 @@ void DetailsDialog::refreshUI()
 
         for (Torrent const* const t : torrents)
         {
-            if (t->hasMetadata())
+            if (t->has_metadata())
             {
-                have_unverified += t->haveUnverified();
-                uint64_t const v = t->haveVerified();
+                have_unverified += t->have_unverified();
+                uint64_t const v = t->have_verified();
                 have_verified += v;
-                size_when_done += t->sizeWhenDone();
-                left_until_done += t->leftUntilDone();
-                available += t->sizeWhenDone() - t->leftUntilDone() + t->haveUnverified() + t->desiredAvailable();
+                size_when_done += t->size_when_done();
+                left_until_done += t->left_until_done();
+                available += t->size_when_done() - t->left_until_done() + t->have_unverified() + t->desired_available();
             }
         }
 
@@ -627,8 +627,8 @@ void DetailsDialog::refreshUI()
 
         for (Torrent const* const t : torrents)
         {
-            d += t->downloadedEver();
-            f += t->failedEver();
+            d += t->downloaded_ever();
+            f += t->failed_ever();
         }
 
         auto const dstr = Formatter::storage_to_string(d);
@@ -658,8 +658,8 @@ void DetailsDialog::refreshUI()
 
         for (Torrent const* const t : torrents)
         {
-            uploaded += t->uploadedEver();
-            denominator += t->sizeWhenDone();
+            uploaded += t->uploaded_ever();
+            denominator += t->size_when_done();
         }
 
         string = tr("%1 (Ratio: %2)")
@@ -677,16 +677,16 @@ void DetailsDialog::refreshUI()
     else
     {
         bool all_paused = true;
-        auto baseline = torrents[0]->lastStarted();
+        auto baseline = torrents[0]->last_started();
 
         for (Torrent const* const t : torrents)
         {
-            if (baseline != t->lastStarted())
+            if (baseline != t->last_started())
             {
                 baseline = 0;
             }
 
-            if (!t->isPaused())
+            if (!t->is_paused())
             {
                 all_paused = false;
             }
@@ -718,11 +718,11 @@ void DetailsDialog::refreshUI()
     }
     else
     {
-        int const baseline = torrents[0]->getETA();
+        int const baseline = torrents[0]->get_eta();
 
         for (Torrent const* const t : torrents)
         {
-            if (baseline != t->getETA())
+            if (baseline != t->get_eta())
             {
                 string = mixed;
                 break;
@@ -751,11 +751,11 @@ void DetailsDialog::refreshUI()
     }
     else
     {
-        auto latest = torrents[0]->lastActivity();
+        auto latest = torrents[0]->last_activity();
 
         for (Torrent const* const tor : torrents)
         {
-            latest = std::max(latest, tor->lastActivity());
+            latest = std::max(latest, tor->last_activity());
         }
 
         auto const seconds = static_cast<int>(std::difftime(now, latest));
@@ -814,14 +814,14 @@ void DetailsDialog::refreshUI()
     {
         int pieces = 0;
         auto size = uint64_t{};
-        uint32_t piece_size = torrents[0]->pieceSize();
+        uint32_t piece_size = torrents[0]->piece_size();
 
         for (Torrent const* const t : torrents)
         {
-            pieces += t->pieceCount();
-            size += t->totalSize();
+            pieces += t->piece_count();
+            size += t->total_size();
 
-            if (piece_size != t->pieceSize())
+            if (piece_size != t->piece_size())
             {
                 piece_size = 0;
             }
@@ -856,7 +856,7 @@ void DetailsDialog::refreshUI()
     }
     else
     {
-        string = torrents.front()->hash().toString();
+        string = torrents.front()->hash().to_string();
     }
 
     ui_.hashValueLabel->setText(string);
@@ -866,12 +866,12 @@ void DetailsDialog::refreshUI()
 
     if (!torrents.empty())
     {
-        bool const b = torrents[0]->isPrivate();
+        bool const b = torrents[0]->is_private();
         string = b ? tr("Private to this tracker -- DHT and PEX disabled") : tr("Public torrent");
 
         for (Torrent const* const t : torrents)
         {
-            if (b != t->isPrivate())
+            if (b != t->is_private())
             {
                 string = mixed;
                 break;
@@ -946,12 +946,12 @@ void DetailsDialog::refreshUI()
         bool mixed_creator = false;
         bool mixed_date = false;
         auto const creator = torrents[0]->creator();
-        auto const date = torrents[0]->dateCreated();
+        auto const date = torrents[0]->date_created();
 
         for (Torrent const* const t : torrents)
         {
             mixed_creator |= (creator != t->creator());
-            mixed_date |= (date != t->dateCreated());
+            mixed_date |= (date != t->date_created());
         }
 
         bool const empty_creator = creator.isEmpty();
@@ -988,11 +988,11 @@ void DetailsDialog::refreshUI()
 
     if (!torrents.empty())
     {
-        string = torrents[0]->getPath();
+        string = torrents[0]->get_path();
 
         for (Torrent const* const t : torrents)
         {
-            if (string != t->getPath())
+            if (string != t->get_path())
             {
                 string = mixed;
                 break;
@@ -1006,12 +1006,12 @@ void DetailsDialog::refreshUI()
 
     if (!torrents.empty())
     {
-        auto const date = torrents[0]->dateAdded();
+        auto const date = torrents[0]->date_added();
         bool mixed_date = false;
 
         for (Torrent const* const t : torrents)
         {
-            mixed_date |= (date != t->dateAdded());
+            mixed_date |= (date != t->date_added());
         }
 
         bool const empty_date = date <= 0;
@@ -1043,11 +1043,11 @@ void DetailsDialog::refreshUI()
 
         // mySessionLimitCheck
         bool uniform = true;
-        bool baseline_flag = baseline.honorsSessionLimits();
+        bool baseline_flag = baseline.honors_session_limits();
 
         for (Torrent const* const tor : torrents)
         {
-            if (baseline_flag != tor->honorsSessionLimits())
+            if (baseline_flag != tor->honors_session_limits())
             {
                 uniform = false;
                 break;
@@ -1058,11 +1058,11 @@ void DetailsDialog::refreshUI()
 
         // mySingleDownCheck
         uniform = true;
-        baseline_flag = baseline.downloadIsLimited();
+        baseline_flag = baseline.download_is_limited();
 
         for (Torrent const* const tor : torrents)
         {
-            if (baseline_flag != tor->downloadIsLimited())
+            if (baseline_flag != tor->download_is_limited())
             {
                 uniform = false;
                 break;
@@ -1073,11 +1073,11 @@ void DetailsDialog::refreshUI()
 
         // mySingleUpCheck
         uniform = true;
-        baseline_flag = baseline.uploadIsLimited();
+        baseline_flag = baseline.upload_is_limited();
 
         for (Torrent const* const tor : torrents)
         {
-            if (baseline_flag != tor->uploadIsLimited())
+            if (baseline_flag != tor->upload_is_limited())
             {
                 uniform = false;
                 break;
@@ -1088,11 +1088,11 @@ void DetailsDialog::refreshUI()
 
         // myBandwidthPriorityCombo
         uniform = true;
-        int const baseline_int = baseline.getBandwidthPriority();
+        int const baseline_int = baseline.get_bandwidth_priority();
 
         for (Torrent const* const tor : torrents)
         {
-            if (baseline_int != tor->getBandwidthPriority())
+            if (baseline_int != tor->get_bandwidth_priority())
             {
                 uniform = false;
                 break;
@@ -1103,9 +1103,9 @@ void DetailsDialog::refreshUI()
 
         setIfIdle(ui_.bandwidthPriorityCombo, i);
 
-        setIfIdle(ui_.singleDownSpin, static_cast<int>(baseline.downloadLimit().count(Speed::Units::KByps)));
-        setIfIdle(ui_.singleUpSpin, static_cast<int>(baseline.uploadLimit().count(Speed::Units::KByps)));
-        setIfIdle(ui_.peerLimitSpin, baseline.peerLimit());
+        setIfIdle(ui_.singleDownSpin, static_cast<int>(baseline.download_limit().count(Speed::Units::KByps)));
+        setIfIdle(ui_.singleUpSpin, static_cast<int>(baseline.upload_limit().count(Speed::Units::KByps)));
+        setIfIdle(ui_.peerLimitSpin, baseline.peer_limit());
     }
 
     if (!torrents.empty())
@@ -1114,11 +1114,11 @@ void DetailsDialog::refreshUI()
 
         // ratio
         bool uniform = true;
-        int baseline_int = baseline.seedRatioMode();
+        int baseline_int = baseline.seed_ratio_mode();
 
         for (Torrent const* const tor : torrents)
         {
-            if (baseline_int != tor->seedRatioMode())
+            if (baseline_int != tor->seed_ratio_mode())
             {
                 uniform = false;
                 break;
@@ -1128,15 +1128,15 @@ void DetailsDialog::refreshUI()
         setIfIdle(ui_.ratioCombo, uniform ? ui_.ratioCombo->findData(baseline_int) : -1);
         ui_.ratioSpin->setVisible(uniform && baseline_int == TR_RATIOLIMIT_SINGLE);
 
-        setIfIdle(ui_.ratioSpin, baseline.seedRatioLimit());
+        setIfIdle(ui_.ratioSpin, baseline.seed_ratio_limit());
 
         // idle
         uniform = true;
-        baseline_int = baseline.seedIdleMode();
+        baseline_int = baseline.seed_idle_mode();
 
         for (Torrent const* const tor : torrents)
         {
-            if (baseline_int != tor->seedIdleMode())
+            if (baseline_int != tor->seed_idle_mode())
             {
                 uniform = false;
                 break;
@@ -1146,7 +1146,7 @@ void DetailsDialog::refreshUI()
         setIfIdle(ui_.idleCombo, uniform ? ui_.idleCombo->findData(baseline_int) : -1);
         ui_.idleSpin->setVisible(uniform && baseline_int == TR_RATIOLIMIT_SINGLE);
 
-        setIfIdle(ui_.idleSpin, baseline.seedIdleLimit());
+        setIfIdle(ui_.idleSpin, baseline.seed_idle_limit());
         onIdleLimitChanged();
     }
 
@@ -1319,8 +1319,8 @@ void DetailsDialog::initInfoTab()
     ui_.labelsTextEdit->setPlainText(QStringLiteral("Initializing..."));
 
     auto* cr = new ColumnResizer{ this };
-    cr->addLayout(ui_.activitySectionLayout);
-    cr->addLayout(ui_.detailsSectionLayout);
+    cr->add_layout(ui_.activitySectionLayout);
+    cr->add_layout(ui_.detailsSectionLayout);
     cr->update();
 }
 
@@ -1378,7 +1378,7 @@ void DetailsDialog::onIdleLimitChanged()
     //: Spin box format, "Stop seeding if idle for: [ 5 minutes ]"
     auto const* const units_format = QT_TRANSLATE_N_NOOP("DetailsDialog", "%1 minute(s)");
     auto const placeholder = QStringLiteral("%1");
-    Utils::updateSpinBoxFormat(ui_.idleSpin, "DetailsDialog", units_format, placeholder);
+    Utils::update_spin_box_format(ui_.idleSpin, "DetailsDialog", units_format, placeholder);
 }
 
 void DetailsDialog::onRatioModeChanged(int index)
@@ -1481,7 +1481,7 @@ void DetailsDialog::onEditTrackersClicked()
         return;
     }
 
-    auto* dialog = new TrackersDialog{ tor->trackerList(), this };
+    auto* dialog = new TrackersDialog{ tor->tracker_list(), this };
     dialog->setAttribute(Qt::WA_DeleteOnClose);
     connect(dialog, &TrackersDialog::trackerListEdited, this, &DetailsDialog::onTrackerListEdited);
     dialog->open();
@@ -1536,9 +1536,9 @@ void DetailsDialog::initOptionsTab()
     ui_.idleCombo->addItem(tr("Stop seeding if idle for:"), TR_IDLELIMIT_SINGLE);
 
     auto* cr = new ColumnResizer{ this };
-    cr->addLayout(ui_.speedSectionLayout);
-    cr->addLayout(ui_.seedingLimitsSectionLayout);
-    cr->addLayout(ui_.peerConnectionsSectionLayout);
+    cr->add_layout(ui_.speedSectionLayout);
+    cr->add_layout(ui_.seedingLimitsSectionLayout);
+    cr->add_layout(ui_.peerConnectionsSectionLayout);
     cr->update();
 
     // clang-format off
@@ -1621,10 +1621,10 @@ void DetailsDialog::initPeersTab()
 
 void DetailsDialog::initFilesTab() const
 {
-    connect(ui_.filesView, &FileTreeView::openRequested, this, &DetailsDialog::onOpenRequested);
-    connect(ui_.filesView, &FileTreeView::pathEdited, this, &DetailsDialog::onPathEdited);
-    connect(ui_.filesView, &FileTreeView::priorityChanged, this, &DetailsDialog::onFilePriorityChanged);
-    connect(ui_.filesView, &FileTreeView::wantedChanged, this, &DetailsDialog::onFileWantedChanged);
+    connect(ui_.filesView, &FileTreeView::open_requested, this, &DetailsDialog::onOpenRequested);
+    connect(ui_.filesView, &FileTreeView::path_edited, this, &DetailsDialog::onPathEdited);
+    connect(ui_.filesView, &FileTreeView::priority_changed, this, &DetailsDialog::onFilePriorityChanged);
+    connect(ui_.filesView, &FileTreeView::wanted_changed, this, &DetailsDialog::onFileWantedChanged);
 }
 
 void DetailsDialog::onFilePriorityChanged(file_indices_t const& indices, int priority)
@@ -1659,7 +1659,7 @@ void DetailsDialog::onOpenRequested(QString const& path) const
             continue;
         }
 
-        auto const local_file_path = tor->getPath() + QLatin1Char('/') + path;
+        auto const local_file_path = tor->get_path() + QLatin1Char('/') + path;
 
         if (!QFile::exists(local_file_path))
         {

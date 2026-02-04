@@ -244,8 +244,8 @@ MakeDialog::MakeDialog(Session& session, QWidget* parent)
     ui_.sourceFileButton->setMode(PathButton::FileMode);
 
     auto* cr = new ColumnResizer{ this };
-    cr->addLayout(ui_.filesSectionLayout);
-    cr->addLayout(ui_.propertiesSectionLayout);
+    cr->add_layout(ui_.filesSectionLayout);
+    cr->add_layout(ui_.propertiesSectionLayout);
     cr->update();
 
     resize(minimumSizeHint());

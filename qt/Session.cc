@@ -949,7 +949,7 @@ void Session::addTorrent(AddData const& add_me, tr_variant* args_dict)
     case AddData::FILENAME:
         [[fallthrough]];
     case AddData::METAINFO:
-        dictAdd(args_dict, TR_KEY_metainfo, add_me.toBase64());
+        dictAdd(args_dict, TR_KEY_metainfo, add_me.to_base64());
         break;
 
     default:
@@ -965,7 +965,7 @@ void Session::addTorrent(AddData const& add_me, tr_variant* args_dict)
         {
             auto* d = new QMessageBox{ QMessageBox::Warning,
                                        tr("Error Adding Torrent"),
-                                       QStringLiteral("<p><b>%1</b></p><p>%2</p>").arg(r.errmsg).arg(add_me.readableName()),
+                                       QStringLiteral("<p><b>%1</b></p><p>%2</p>").arg(r.errmsg).arg(add_me.readable_name()),
                                        QMessageBox::Close,
                                        QApplication::activeWindow() };
             QObject::connect(d, &QMessageBox::rejected, d, &QMessageBox::deleteLater);
@@ -977,15 +977,15 @@ void Session::addTorrent(AddData const& add_me, tr_variant* args_dict)
         {
             if (tr_variant* dup = nullptr; tr_variantDictFindDict(r.args.get(), TR_KEY_torrent_added, &dup))
             {
-                add_me.disposeSourceFile();
+                add_me.dispose_source_file();
             }
             else if (tr_variantDictFindDict(r.args.get(), TR_KEY_torrent_duplicate, &dup))
             {
-                add_me.disposeSourceFile();
+                add_me.dispose_source_file();
 
                 if (auto const hash = dictFind<QString>(dup, TR_KEY_hash_string))
                 {
-                    duplicates_.try_emplace(add_me.readableShortName(), *hash);
+                    duplicates_.try_emplace(add_me.readable_short_name(), *hash);
                     duplicates_timer_.start(1000);
                 }
             }
@@ -1034,7 +1034,7 @@ void Session::addTorrent(AddData const& add_me)
 
 void Session::addNewlyCreatedTorrent(QString const& filename, QString const& local_path)
 {
-    QByteArray const b64 = AddData(filename).toBase64();
+    QByteArray const b64 = AddData(filename).to_base64();
 
     tr_variant args;
     tr_variantInitDict(&args, 3);

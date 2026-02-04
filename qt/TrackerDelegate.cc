@@ -65,7 +65,7 @@ ItemLayout::ItemLayout(
     QRect base_rect{ top_left, QSize{ width, 0 } };
 
     icon_rect = QStyle::alignedRect(direction, Qt::AlignLeft | Qt::AlignTop, icon_size, base_rect);
-    Utils::narrowRect(base_rect, icon_size.width() + Spacing, 0, direction);
+    Utils::narrow_rect(base_rect, icon_size.width() + Spacing, 0, direction);
 
     text_document_.setDocumentMargin(0);
     text_document_.setTextWidth(base_rect.width());

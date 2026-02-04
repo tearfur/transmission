@@ -288,8 +288,8 @@ void PrefsDialog::initSpeedTab()
                    << ui_.altSpeedLimitDaysLabel << ui_.altSpeedLimitDaysCombo;
 
     auto* cr = new ColumnResizer{ this };
-    cr->addLayout(ui_.speedLimitsSectionLayout);
-    cr->addLayout(ui_.altSpeedLimitsSectionLayout);
+    cr->add_layout(ui_.speedLimitsSectionLayout);
+    cr->add_layout(ui_.altSpeedLimitsSectionLayout);
     cr->update();
 }
 
@@ -402,8 +402,8 @@ void PrefsDialog::initNetworkTab()
     initWidget(ui_.defaultTrackersPlainTextEdit, Prefs::DEFAULT_TRACKERS);
 
     auto* cr = new ColumnResizer{ this };
-    cr->addLayout(ui_.incomingPeersSectionLayout);
-    cr->addLayout(ui_.peerLimitsSectionLayout);
+    cr->add_layout(ui_.incomingPeersSectionLayout);
+    cr->add_layout(ui_.peerLimitsSectionLayout);
     cr->update();
 
     connect(ui_.testPeerPortButton, &QAbstractButton::clicked, this, &PrefsDialog::onPortTest);
@@ -457,8 +457,8 @@ void PrefsDialog::initPrivacyTab()
                    << ui_.autoUpdateBlocklistCheck;
 
     auto* cr = new ColumnResizer{ this };
-    cr->addLayout(ui_.encryptionSectionLayout);
-    cr->addLayout(ui_.blocklistSectionLayout);
+    cr->add_layout(ui_.encryptionSectionLayout);
+    cr->add_layout(ui_.blocklistSectionLayout);
     cr->update();
 
     connect(ui_.updateBlocklistButton, &QAbstractButton::clicked, this, &PrefsDialog::onUpdateBlocklistClicked);
@@ -473,7 +473,7 @@ void PrefsDialog::onIdleLimitChanged()
     //: Spin box format, "Stop seeding if idle for: [ 5 minutes ]"
     auto const* const units_format = QT_TRANSLATE_N_NOOP("PrefsDialog", "%1 minute(s)");
     auto const placeholder = QStringLiteral("%1");
-    Utils::updateSpinBoxFormat(ui_.idleLimitSpin, "PrefsDialog", units_format, placeholder);
+    Utils::update_spin_box_format(ui_.idleLimitSpin, "PrefsDialog", units_format, placeholder);
 }
 
 void PrefsDialog::initSeedingTab()
@@ -499,7 +499,7 @@ void PrefsDialog::onQueueStalledMinutesChanged()
     //: Spin box format, "Download is inactive if data sharing stopped: [ 5 minutes ago ]"
     auto const* const units_format = QT_TRANSLATE_N_NOOP("PrefsDialog", "%1 minute(s) ago");
     auto const placeholder = QStringLiteral("%1");
-    Utils::updateSpinBoxFormat(ui_.queueStalledMinutesSpin, "PrefsDialog", units_format, placeholder);
+    Utils::update_spin_box_format(ui_.queueStalledMinutesSpin, "PrefsDialog", units_format, placeholder);
 }
 
 void PrefsDialog::initDownloadingTab()
@@ -541,9 +541,9 @@ void PrefsDialog::initDownloadingTab()
     initWidget(ui_.doneDownloadingScriptEdit, Prefs::SCRIPT_TORRENT_DONE_FILENAME);
 
     auto* cr = new ColumnResizer{ this };
-    cr->addLayout(ui_.addingSectionLayout);
-    cr->addLayout(ui_.downloadQueueSectionLayout);
-    cr->addLayout(ui_.incompleteSectionLayout);
+    cr->add_layout(ui_.addingSectionLayout);
+    cr->add_layout(ui_.downloadQueueSectionLayout);
+    cr->add_layout(ui_.incompleteSectionLayout);
     cr->update();
 
     connect(

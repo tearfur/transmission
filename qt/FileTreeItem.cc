@@ -174,8 +174,8 @@ QVariant FileTreeItem::data(int column, int role) const
         if (column == FileTreeModel::COL_NAME)
         {
             auto const& icon_cache = IconCache::get();
-            value = (file_index_ < 0 || childCount() > 0) ? icon_cache.folderIcon() :
-                                                            icon_cache.guessMimeIcon(name(), icon_cache.fileIcon());
+            value = (file_index_ < 0 || childCount() > 0) ? icon_cache.folder_icon() :
+                                                            icon_cache.guess_mime_icon(name(), icon_cache.file_icon());
         }
 
         break;

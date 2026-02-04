@@ -35,10 +35,10 @@ public:
     void setEditable(bool editable);
 
 signals:
-    void priorityChanged(file_indices_t const& file_indices, int priority);
-    void wantedChanged(file_indices_t const& file_indices, bool wanted);
-    void pathEdited(QString const& old_path, QString const& new_name);
-    void openRequested(QString const& path);
+    void priority_changed(file_indices_t const& file_indices, int priority);
+    void wanted_changed(file_indices_t const& file_indices, bool wanted);
+    void path_edited(QString const& old_path, QString const& new_name);
+    void open_requested(QString const& path);
 
 protected:
     // QWidget

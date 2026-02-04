@@ -85,7 +85,7 @@ bool tryDelegate(QStringList const& filenames)
 
         case AddData::FILENAME:
         case AddData::METAINFO:
-            metainfo = QString::fromUtf8(add_data.toBase64());
+            metainfo = QString::fromUtf8(add_data.to_base64());
             break;
 
         default:

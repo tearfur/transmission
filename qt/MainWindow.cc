@@ -478,17 +478,17 @@ void MainWindow::hideEvent(QHideEvent* event)
 
 void MainWindow::openSession()
 {
-    Utils::openDialog(session_dialog_, session_, prefs_, this);
+    Utils::open_dialog(session_dialog_, session_, prefs_, this);
 }
 
 void MainWindow::openPreferences()
 {
-    Utils::openDialog(prefs_dialog_, session_, prefs_, this);
+    Utils::open_dialog(prefs_dialog_, session_, prefs_, this);
 }
 
 void MainWindow::openProperties()
 {
-    Utils::openDialog(details_dialog_, session_, prefs_, model_, this);
+    Utils::open_dialog(details_dialog_, session_, prefs_, model_, this);
     details_dialog_->setIds(getSelectedTorrents());
 }
 
@@ -604,7 +604,7 @@ void MainWindow::openFolder()
         return;
     }
 
-    auto const parent = QDir{ tor->getPath() };
+    auto const parent = QDir{ tor->get_path() };
     auto const child = getTopFolder(parent, tor);
     openSelect(parent.filePath(child));
 }
@@ -617,7 +617,7 @@ void MainWindow::copyMagnetLinkToClipboard()
 
 void MainWindow::openStats()
 {
-    Utils::openDialog(stats_dialog_, session_, this);
+    Utils::open_dialog(stats_dialog_, session_, this);
 }
 
 void MainWindow::openDonate() const
@@ -627,7 +627,7 @@ void MainWindow::openDonate() const
 
 void MainWindow::openAbout()
 {
-    Utils::openDialog(about_dialog_, session_, this);
+    Utils::open_dialog(about_dialog_, session_, this);
 }
 
 void MainWindow::openHelp() const
@@ -657,11 +657,11 @@ MainWindow::TransferStats MainWindow::getTransferStats() const
 
     for (auto const& tor : model_.torrents())
     {
-        stats.speed_up += tor->uploadSpeed();
-        stats.speed_down += tor->downloadSpeed();
-        stats.peers_sending += tor->webseedsWeAreDownloadingFrom();
-        stats.peers_sending += tor->peersWeAreDownloadingFrom();
-        stats.peers_receiving += tor->peersWeAreUploadingTo();
+        stats.speed_up += tor->upload_speed();
+        stats.speed_down += tor->download_speed();
+        stats.peers_sending += tor->webseeds_we_are_downloading_from();
+        stats.peers_sending += tor->peers_we_are_downloading_from();
+        stats.peers_receiving += tor->peers_we_are_uploading_to();
     }
 
     return stats;
@@ -803,22 +803,22 @@ void MainWindow::refreshActionSensitivity()
 
         ++selected;
 
-        if (tor->isPaused())
+        if (tor->is_paused())
         {
             ++selected_and_paused;
         }
 
-        if (tor->isQueued())
+        if (tor->is_queued())
         {
             ++selected_and_queued;
         }
 
-        if (tor->hasMetadata())
+        if (tor->has_metadata())
         {
             ++selected_with_metadata;
         }
 
-        if (tor->canManualAnnounceAt(now))
+        if (tor->can_manual_announce_at(now))
         {
             ++selected_and_can_announce;
         }
@@ -827,7 +827,7 @@ void MainWindow::refreshActionSensitivity()
     auto const& torrents = model_.torrents();
     auto const is_paused = [](auto const* tor)
     {
-        return tor->isPaused();
+        return tor->is_paused();
     };
     auto const any_paused = std::ranges::any_of(torrents, is_paused);
     auto const any_not_paused = !std::ranges::all_of(torrents, is_paused);
@@ -930,7 +930,7 @@ torrent_ids_t MainWindow::getSelectedTorrents(bool with_metadata_only) const
     {
         auto const* tor(index.data(TorrentModel::TorrentRole).value<Torrent const*>());
 
-        if (tor != nullptr && (!with_metadata_only || tor->hasMetadata()))
+        if (tor != nullptr && (!with_metadata_only || tor->has_metadata()))
         {
             ids.insert(tor->id());
         }
@@ -1343,12 +1343,12 @@ void MainWindow::removeTorrents(bool const delete_files)
         auto const* tor(index.data(TorrentModel::TorrentRole).value<Torrent const*>());
         ids.insert(tor->id());
 
-        if (tor->connectedPeers())
+        if (tor->connected_peers())
         {
             ++connected;
         }
 
-        if (!tor->isDone())
+        if (!tor->is_done())
         {
             ++incomplete;
         }

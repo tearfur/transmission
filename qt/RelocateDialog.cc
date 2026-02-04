@@ -41,9 +41,9 @@ RelocateDialog::RelocateDialog(Session& session, TorrentModel const& model, torr
 
         if (path.isEmpty())
         {
-            path = tor->getPath();
+            path = tor->get_path();
         }
-        else if (path != tor->getPath())
+        else if (path != tor->get_path())
         {
             if (session_.isLocal())
             {

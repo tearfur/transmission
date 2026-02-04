@@ -105,7 +105,7 @@ QVariant TorrentModel::data(QModelIndex const& index, int role) const
             return t->name();
 
         case Qt::DecorationRole:
-            return t->getMimeTypeIcon();
+            return t->get_mime_type_icon();
 
         case TorrentRole:
             return QVariant::fromValue(t);
@@ -162,7 +162,7 @@ void TorrentModel::updateTorrents(tr_variant* torrent_list, bool is_complete_lis
     auto const recently_added = [&now](auto const& tor)
     {
         static auto constexpr MaxAge = 60;
-        auto const date = tor->dateAdded();
+        auto const date = tor->date_added();
         return (date != 0) && (difftime(now, date) < MaxAge);
     };
 
@@ -275,7 +275,7 @@ void TorrentModel::updateTorrents(tr_variant* torrent_list, bool is_complete_lis
             already_added_.insert(*id);
         }
 
-        if (fields.test(Torrent::LEFT_UNTIL_DONE) && (tor->leftUntilDone() == 0) && (tor->downloadedEver() > 0))
+        if (fields.test(Torrent::LEFT_UNTIL_DONE) && (tor->left_until_done() == 0) && (tor->downloaded_ever() > 0))
         {
             completed.insert(*id);
         }

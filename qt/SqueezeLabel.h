@@ -62,10 +62,9 @@ protected:
 
 private:
 #if QT_CONFIG(accessibility)
-    void updateAccessibilityIfNeeded();
+    void update_accessibility_if_needed();
 #endif
 
-private:
 #if QT_CONFIG(accessibility)
     QString old_text_;
     int old_position_ = -1;

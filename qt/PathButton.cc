@@ -56,7 +56,7 @@ void PathButton::setPath(QString const& path)
         return;
     }
 
-    path_ = QDir::toNativeSeparators(Utils::removeTrailingDirSeparator(path));
+    path_ = QDir::toNativeSeparators(Utils::remove_trailing_dir_separator(path));
 
     updateAppearance();
 
