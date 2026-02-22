@@ -617,17 +617,14 @@ namespace queue_helpers
 {
 std::vector<tr_torrent*> get_next_queued_torrents(tr_torrents& torrents, tr_direction dir, size_t num_wanted)
 {
-    auto candidates = torrents.get_matching([dir](auto const* const tor) { return tor->is_queued(dir); });
+    auto view = torrents.get_matching([dir](auto const* const tor) { return tor->is_queued(dir); });
+    auto candidates = std::vector(view.begin(), view.end());
 
     // find the best n candidates
     num_wanted = std::min(num_wanted, std::size(candidates));
     if (num_wanted < candidates.size())
     {
-        std::partial_sort(
-            std::begin(candidates),
-            std::begin(candidates) + num_wanted,
-            std::end(candidates),
-            tr_torrent::CompareQueuePosition);
+        std::ranges::partial_sort(candidates, std::begin(candidates) + num_wanted, tr_torrent::CompareQueuePosition);
         candidates.resize(num_wanted);
     }
 
@@ -1401,7 +1398,8 @@ void tr_session::closeImplPart1(std::promise<void>* closed_promise, std::chrono:
     // Close the torrents in order of most active to least active
     // so that the most important announce=stopped events are
     // fired out first...
-    auto torrents = torrents_.get_all();
+    auto torrents_view = torrents_.get_all();
+    auto torrents = std::vector(torrents_view.begin(), torrents_view.end());
     std::ranges::sort(
         torrents,
         [](auto const* a, auto const* b)

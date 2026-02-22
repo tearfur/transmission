@@ -14,6 +14,7 @@
 #include <ctime>
 #include <functional>
 #include <iterator>
+#include <ranges>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -106,11 +107,7 @@ public:
         {
             return tor != nullptr && pred_in(tor);
         };
-
-        auto vec = std::vector<tr_torrent*>{};
-        vec.reserve(size());
-        std::copy_if(std::begin(by_id_), std::end(by_id_), std::back_inserter(vec), pred);
-        return vec;
+        return std::views::filter(by_id_, pred);
     }
 
     [[nodiscard]] auto get_all() const
