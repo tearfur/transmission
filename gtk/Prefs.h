@@ -35,8 +35,17 @@ void gtr_pref_set(tr_quark const key, T const& val)
 
 void gtr_pref_init(std::string_view config_dir);
 
-int64_t gtr_pref_int_get(tr_quark key);
-void gtr_pref_int_set(tr_quark key, int64_t value);
+template<typename T>
+T gtr_pref_int_get(tr_quark const key) requires std::is_integral_v<T> || std::is_enum_v<T>
+{
+    return gtr_pref_get_map().value_if<T>(key).value_or(T{});
+}
+
+template<typename T>
+void gtr_pref_int_set(tr_quark key, T value) requires std::is_integral_v<T> || std::is_enum_v<T>
+{
+    gtr_pref_get_map().insert_or_assign(key, value);
+}
 
 double gtr_pref_double_get(tr_quark key);
 void gtr_pref_double_set(tr_quark key, double value);

@@ -2484,8 +2484,8 @@ DetailsDialog::Impl::Impl(DetailsDialog& dialog, Glib::RefPtr<Gtk::Builder> cons
     , file_label_(gtr_get_widget<Gtk::Label>(builder, "files_label"))
 {
     /* return saved window size */
-    auto const width = (int)gtr_pref_int_get(TR_KEY_details_window_width);
-    auto const height = (int)gtr_pref_int_get(TR_KEY_details_window_height);
+    auto const width = gtr_pref_int_get<int>(TR_KEY_details_window_width);
+    auto const height = gtr_pref_int_get<int>(TR_KEY_details_window_height);
 #if GTKMM_CHECK_VERSION(4, 0, 0)
     dialog_.set_default_size(width, height);
     dialog_.property_default_width().signal_changed().connect(sigc::mem_fun(*this, &Impl::on_details_window_size_allocated));

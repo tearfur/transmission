@@ -353,6 +353,9 @@ public:
     [[nodiscard]] constexpr std::optional<Val> value_if() const noexcept;
 
     template<typename Val>
+    [[nodiscard]] constexpr std::optional<Val> value_if() const noexcept requires std::is_enum_v<Val>;
+
+    template<typename Val>
     [[nodiscard]] constexpr bool holds_alternative() const noexcept
     {
         if constexpr (std::is_same_v<Val, std::string_view>)
@@ -477,6 +480,17 @@ template<std::integral Val>
         std::cmp_less_equal(*val, std::numeric_limits<Val>::max()))
     {
         return val;
+    }
+
+    return {};
+}
+
+template<typename Val>
+[[nodiscard]] constexpr std::optional<Val> tr_variant::value_if() const noexcept requires std::is_enum_v<Val>
+{
+    if (auto val = value_if<std::underlying_type_t<Val>>())
+    {
+        return static_cast<Val>(*val);
     }
 
     return {};
