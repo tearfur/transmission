@@ -2295,7 +2295,7 @@ using SessionAccessors = std::pair<SessionGetter, SessionSetter>;
         [](tr_session const& src) -> tr_variant { return src.idleLimitMinutes(); },
         [](tr_session& tgt, tr_variant const& src, ErrorInfo& /*err*/)
         {
-            if (auto const val = src.value_if<int64_t>())
+            if (auto const val = src.value_if<uint16_t>())
             {
                 tr_sessionSetIdleLimit(&tgt, *val);
             }
