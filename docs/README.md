@@ -34,8 +34,8 @@ Much of this documentation is out-of-date or could be improved. Pull requests ar
  * [Securing Transmission's RPC interface with an open-source reverse proxy (External Link)](https://www.pomerium.com/docs/guides/transmission)
 
 # 3. Report a problem / request a feature #
-  * [Check](https://github.com/transmission/transmission/issues) whether the problem has already been reported.
-  * If you do not see a ticket matching your problem or feature, then [add a new ticket](https://github.com/transmission/transmission/issues/new).
+  * [Check](https://github.com/transmissiontorrent/transmission/issues) whether the problem has already been reported.
+  * If you do not see a ticket matching your problem or feature, then [add a new ticket](https://github.com/transmissiontorrent/transmission/issues/new).
   * If you _do_ see an existing ticket, please add a comment there. The more users are interested in a ticket, the higher its priority.
 
 # 4. For contributors #

@@ -16,7 +16,7 @@ Some of Transmission's behavior can also be customized via environment variables
 > You can start Transmission with `TR_SAVE_VERSION_FORMAT=4` (the default in Transmission 4) to fall back to the old format if needed.
 >
 > For documentation of the old configurations, please consult documentation from previous versions.
-> https://github.com/transmission/transmission/blob/4.0.6/docs/Editing-Configuration-Files.md
+> https://github.com/transmissiontorrent/transmission/blob/4.0.6/docs/Editing-Configuration-Files.md
 
 ### Overview
 GTK, CLI and daemon (both on a Mac and Linux) use a [JSON](https://www.json.org/) formatted file, mainly because of its human readability.

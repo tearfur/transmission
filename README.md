@@ -51,7 +51,7 @@ If you're new to building programs from source code, this is typically easier th
 ### Building Transmission from Git (first time)
 
 ```bash
-$ git clone --recurse-submodules https://github.com/transmission/transmission Transmission
+$ git clone --recurse-submodules https://github.com/transmissiontorrent/transmission Transmission
 $ cd Transmission
 # Use -DCMAKE_BUILD_TYPE=RelWithDebInfo to build optimized binary with debug information. (preferred)
 # Use -DCMAKE_BUILD_TYPE=Release to build full optimized binary.

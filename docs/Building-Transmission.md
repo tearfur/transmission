@@ -11,7 +11,7 @@ The actual software prerequisites for building the app are based on GitHub Actio
 
 Building the project on Mac requires the source to be retrieved from GitHub. Pre-packaged source code will not compile.
 ```bash
-git clone --recurse-submodules https://github.com/transmission/transmission Transmission
+git clone --recurse-submodules https://github.com/transmissiontorrent/transmission Transmission
 ```
 
 If building from source is too daunting for you, check out the [nightly builds](https://build.transmissiontorrent.com/).
@@ -128,7 +128,7 @@ Then you can begin [building.](#building-transmission-from-git-first-time)
 
 ### Building Transmission from Git (first time) ###
 ```bash
-$ git clone --recurse-submodules https://github.com/transmission/transmission Transmission
+$ git clone --recurse-submodules https://github.com/transmissiontorrent/transmission Transmission
 $ cd Transmission
 # Use -DCMAKE_BUILD_TYPE=RelWithDebInfo to build optimized binary with debug information. (preferred)
 # Use -DCMAKE_BUILD_TYPE=Release to build full optimized binary.
@@ -179,7 +179,7 @@ vcpkg install qtactiveqt qtsvg qttools
 
 ### Get Transmission source
 ```bat
-git clone https://github.com/transmission/transmission
+git clone https://github.com/transmissiontorrent/transmission
 cd transmission
 git submodule update --init --recursive
 ```

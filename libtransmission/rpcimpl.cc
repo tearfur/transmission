@@ -2881,7 +2881,7 @@ void tr_rpc_request_exec_impl(tr_session* session, tr_variant& request, tr_rpc_r
             response.try_emplace(
                 TR_KEY_result,
                 tr_variant::unmanaged_string(
-                    "bug in api-compat, please report a bug at https://github.com/transmission/transmission/issues"sv));
+                    "bug in api-compat, please report a bug at https://github.com/transmissiontorrent/transmission/issues"sv));
             callback(std::move(response));
             return;
         }
