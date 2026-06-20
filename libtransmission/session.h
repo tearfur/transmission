@@ -1122,7 +1122,7 @@ private:
     friend tr_session* tr_sessionInit(
         std::string_view config_dir,
         bool message_queueing_enabled,
-        tr::Settings const& client_settings);
+        tr::Settings const& app_settings);
     friend uint16_t tr_sessionGetPeerPort(tr_session const* session);
     friend uint16_t tr_sessionGetRPCPort(tr_session const* session);
     friend uint16_t tr_sessionSetPeerPortRandom(tr_session* session);
