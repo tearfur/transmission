@@ -635,4 +635,13 @@ private:
     char const* end_ = nullptr;
 };
 
-/* @} */
+namespace tr
+{
+using Settings = tr_variant::Map;
+
+namespace settings
+{
+[[nodiscard]] Settings load(std::string_view filename);
+bool save(std::string_view filename, Settings const& settings);
+} // namespace settings
+} // namespace tr

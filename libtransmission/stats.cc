@@ -7,6 +7,8 @@
 #include <optional>
 #include <utility>
 
+#include <fmt/format.h>
+
 #include "libtransmission/api-compat.h"
 #include "libtransmission/file.h"
 #include "libtransmission/quark.h"
@@ -31,6 +33,11 @@ constexpr auto Fields = std::tuple{
     Field<&tr_session_stats::sessionCount>{ TR_KEY_session_count },
     Field<&tr_session_stats::uploadedBytes>{ TR_KEY_uploaded_bytes },
 };
+
+[[nodiscard]] auto get_stats_json_filename(std::string_view const config_dir)
+{
+    return fmt::format("{:s}/stats.json"sv, config_dir);
+}
 } // namespace
 
 tr_session_stats tr_stats::load_old_stats(std::string_view const config_dir)
@@ -59,9 +66,7 @@ tr_session_stats tr_stats::load_old_stats(std::string_view const config_dir)
 
 void tr_stats::save() const
 {
-    auto var = tr_variant{ serializer::save(cumulative(), Fields) };
-    api_compat::convert_outgoing_data(var);
-    tr_variant_serde::json().to_file(var, tr_pathbuf{ config_dir_, "/stats.json"sv });
+    tr::settings::save(get_stats_json_filename(config_dir_), serializer::save(cumulative(), Fields));
 }
 
 void tr_stats::save_if_dirty()

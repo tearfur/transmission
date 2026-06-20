@@ -469,3 +469,33 @@ bool tr_variant_serde::to_file(tr_variant const& var, std::string_view filename)
 
     return true;
 }
+
+namespace tr::settings
+{
+
+Settings load(std::string_view filename)
+{
+    if (tr_sys_path_exists(filename))
+    {
+        if (auto var = tr_variant_serde::json().parse_file(filename))
+        {
+            if (auto* settings = var->get_if<tr_variant::Map>())
+            {
+                tr::api_compat::convert_incoming_data(*settings);
+                return std::move(*settings);
+            }
+        }
+    }
+
+    return {};
+}
+
+bool save(std::string_view filename, Settings const& settings)
+{
+    auto copy = settings.clone();
+    tr::api_compat::convert_outgoing_data(copy);
+
+    return tr_variant_serde::json().to_file(tr_variant{ std::move(copy) }, filename);
+}
+
+} // namespace tr::settings

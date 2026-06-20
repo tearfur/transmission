@@ -92,9 +92,13 @@ class PrefsTest
         auto serde = tr_variant_serde::json();
         auto const var = serde.parse(json_object_str);
         QVERIFY(var.has_value());
-        // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
-        auto const prefs = Prefs{ *var };
-        QCOMPARE_EQ(prefs.get<T>(key), val);
+        auto const* const map = var->get_if<tr_variant::Map>();
+        QVERIFY(map);
+        if (map)
+        {
+            auto const prefs = Prefs{ *map };
+            QCOMPARE_EQ(prefs.get<T>(key), val);
+        }
     }
 
     static void verify_variant_json(tr_variant const& var, std::string_view const expected)
@@ -367,19 +371,15 @@ private slots:
         prefs.set(TR_KEY_blocklist_date, blocklist_date);
         prefs.save(settings_file);
 
-        auto saved = tr_variant_serde::json().parse_file(settings_file.toStdString());
-        QVERIFY(saved.has_value());
+        auto saved = tr::settings::load(settings_file.toStdString());
+        QCOMPARE_NE(saved.size(), 0U);
+        QVERIFY(!saved.contains(TR_KEY_filter_text));
 
-        auto const* const saved_map = saved->get_if<tr_variant::Map>();
-        QVERIFY(saved_map != nullptr);
-        QVERIFY(!saved_map->contains(TR_KEY_filter_text));
-
-        auto const custom_value = saved_map->value_if<int64_t>(custom_key);
+        auto const custom_value = saved.value_if<int64_t>(custom_key);
         QVERIFY(custom_value.has_value());
         QCOMPARE_EQ(*custom_value, 123);
 
-        tr::api_compat::convert_incoming_data(*saved);
-        auto round_tripped = Prefs{ *saved };
+        auto round_tripped = Prefs{ saved };
         QCOMPARE_EQ(round_tripped.get<QString>(TR_KEY_download_dir), download_dir);
         QCOMPARE_EQ(round_tripped.get<SortMode>(TR_KEY_sort_mode), SortMode::SortByQueue);
         QCOMPARE_EQ(round_tripped.get<QDateTime>(TR_KEY_blocklist_date), blocklist_date);

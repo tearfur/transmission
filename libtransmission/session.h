@@ -397,7 +397,7 @@ private:
 public:
     using Settings = tr::SessionSettings;
 
-    explicit tr_session(std::string_view config_dir, tr_variant const& settings_dict);
+    explicit tr_session(std::string_view config_dir, tr::Settings const& settings);
 
     [[nodiscard]] std::string_view sessionId() const
     {
@@ -1089,7 +1089,7 @@ private:
 
     struct init_data;
     void initImpl(init_data& data);
-    void setSettings(tr_variant const& settings_map, bool force);
+    void setSettings(tr::Settings const& settings_map, bool force);
     void setSettings(Settings&& settings, bool force);
 
     void closeImplPart1(std::promise<void>* closed_promise, std::chrono::time_point<std::chrono::steady_clock> deadline);
@@ -1122,15 +1122,15 @@ private:
     friend tr_session* tr_sessionInit(
         std::string_view config_dir,
         bool message_queueing_enabled,
-        tr_variant const& client_settings);
+        tr::Settings const& client_settings);
     friend uint16_t tr_sessionGetPeerPort(tr_session const* session);
     friend uint16_t tr_sessionGetRPCPort(tr_session const* session);
     friend uint16_t tr_sessionSetPeerPortRandom(tr_session* session);
     friend void tr_sessionClose(tr_session* session, double timeout_secs);
-    friend tr_variant tr_sessionGetSettings(tr_session const* s);
+    friend tr::Settings tr_sessionGetSettings(tr_session const* s);
     friend void tr_sessionLimitSpeed(tr_session* session, tr_direction dir, bool limited);
     friend void tr_sessionReloadBlocklists(tr_session* session);
-    friend void tr_sessionSet(tr_session* session, tr_variant const& settings);
+    friend void tr_sessionSet(tr_session* session, tr::Settings const& settings);
     friend void tr_sessionSetAltSpeedBegin(tr_session* session, size_t minutes_since_midnight);
     friend void tr_sessionSetAltSpeedDay(tr_session* session, tr_sched_day days);
     friend void tr_sessionSetAltSpeedEnd(tr_session* session, size_t minutes_since_midnight);

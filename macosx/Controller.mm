@@ -169,9 +169,9 @@ static void initUnits()
                       m_str.UTF8String,   g_str.UTF8String, t_str.UTF8String };
 }
 
-static tr_variant getSettingsFromNSUserDefaults(NSUserDefaults* defaults)
+static auto getSettingsFromNSUserDefaults(NSUserDefaults* defaults)
 {
-    auto settings = tr_variant::Map{};
+    auto settings = tr::Settings{};
 
     BOOL const usesSpeedLimitSched = [defaults boolForKey:@"SpeedLimitAuto"];
     if (!usesSpeedLimitSched)
@@ -278,7 +278,7 @@ static tr_variant getSettingsFromNSUserDefaults(NSUserDefaults* defaults)
         settings.insert_or_assign(TR_KEY_rpc_host_whitelist, [defaults stringForKey:@"RPCHostWhitelist"].UTF8String);
     }
 
-    return tr_variant{ std::move(settings) };
+    return settings;
 }
 
 // 2.90 was infected with ransomware which we now check for and attempt to remove
