@@ -384,12 +384,12 @@ void periodic_update(evutil_socket_t /*fd*/, short /*what*/, void* arg)
 [[nodiscard]] auto get_default_settings()
 {
     auto defaults = tr::Settings{ 6U };
+    defaults.try_emplace(TR_KEY_pidfile, tr_variant::unmanaged_string(""sv));
+    defaults.try_emplace(TR_KEY_rpc_enabled, true);
+    defaults.try_emplace(TR_KEY_start_paused, false);
     defaults.try_emplace(TR_KEY_watch_dir, tr_variant::unmanaged_string(""sv));
     defaults.try_emplace(TR_KEY_watch_dir_enabled, false);
     defaults.try_emplace(TR_KEY_watch_dir_force_generic, false);
-    defaults.try_emplace(TR_KEY_rpc_enabled, true);
-    defaults.try_emplace(TR_KEY_start_paused, false);
-    defaults.try_emplace(TR_KEY_pidfile, tr_variant::unmanaged_string(""sv));
     return defaults;
 }
 

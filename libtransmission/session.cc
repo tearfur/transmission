@@ -494,8 +494,8 @@ tr::Settings tr_sessionLoadSettings(std::string_view const config_dir)
 void tr_sessionSaveSettings(tr_session* session, std::string_view const config_dir, tr::Settings const& app_settings)
 {
     auto const filename = get_settings_filename(config_dir);
-    auto settings = app_settings.clone(); // user-provided vals
-    settings.merge(tr_sessionGetSettings(session)); // live vals
+    auto settings = tr_sessionGetSettings(session); // live vals
+    settings.merge(app_settings); // user-provided vals
     settings.merge(tr::settings::load(filename)); // fallbacks from pre-existing file
     settings.merge(tr_sessionGetDefaultSettings()); // fallbacks from defaults
     tr::settings::save(filename, settings);
