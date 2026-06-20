@@ -346,7 +346,7 @@ template<typename T, Serializable S>
         return to_value<T>(*value);
     }
 
-    return {};
+    return std::nullopt;
 }
 
 template<typename T, tr_quark Key, Serializable S>
