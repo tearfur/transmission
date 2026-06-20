@@ -318,7 +318,7 @@ void sigHandler(int signal)
         return "Tracker gave an error:"sv;
     case tr_stat::Error::LocalError:
         return "Error:"sv;
-    case tr_stat::Error::Ok:
+    default:
         return ""sv;
     }
 }
