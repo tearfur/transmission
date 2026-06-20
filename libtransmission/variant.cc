@@ -379,11 +379,6 @@ tr_variant* tr_variantDictAdd(tr_variant* const var, tr_quark key)
     return {};
 }
 
-tr_variant* tr_variantDictAddInt(tr_variant* const var, tr_quark const key, int64_t const val)
-{
-    return dict_set(var, key, val);
-}
-
 tr_variant* tr_variantDictAddList(tr_variant* const var, tr_quark const key, size_t const n_reserve)
 {
     return dict_set(var, key, tr_variant::make_vector(n_reserve));

@@ -65,16 +65,17 @@ struct tr_torrent_metainfo;
  */
 [[nodiscard]] std::string tr_getDefaultDownloadDir();
 
-// get a session's default settings
+// Get a session's default settings
 [[nodiscard]] tr::Settings tr_sessionGetDefaultSettings();
 
-// get `session`'s current settings
+// Get `session`'s current settings
 [[nodiscard]] tr::Settings tr_sessionGetSettings(tr_session const* session);
 
-// load settings from disk.
+// Load settings from disk.
+// Fills in any missing settings with defaults from `tr_sessionGetDefaultSettings()`.
 [[nodiscard]] tr::Settings tr_sessionLoadSettings(std::string_view config_dir);
 
-// save `session`'s settings to disk.
+// Save `session`'s settings to disk.
 void tr_sessionSaveSettings(tr_session* session, std::string_view config_dir, tr::Settings const& app_settings);
 
 /**
