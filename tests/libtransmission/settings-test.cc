@@ -70,7 +70,7 @@ TEST_F(SettingsTest, canLoadDoubles)
 
     auto map = tr::Settings{ 1U };
     map.try_emplace(Key, expected_value);
-    settings.load(std::move(map));
+    settings.load(map);
     EXPECT_NEAR(expected_value, settings.ratio_limit, 0.001);
 }
 
