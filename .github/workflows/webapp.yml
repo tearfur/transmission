@@ -151,4 +151,8 @@ jobs:
           delete-branch: true
           title: 'chore: update generated transmission-web files'
           body: Generated from https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          labels: |
+            notes:none
+            scope:web
+            type:chore
 

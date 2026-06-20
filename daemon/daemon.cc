@@ -381,17 +381,23 @@ void periodic_update(evutil_socket_t /*fd*/, short /*what*/, void* arg)
     static_cast<tr_daemon*>(arg)->periodic_update();
 }
 
-tr_variant load_settings(std::string_view const config_dir)
+[[nodiscard]] auto get_default_settings()
 {
-    auto app_defaults_map = tr_variant::Map{ 6U };
-    app_defaults_map.try_emplace(TR_KEY_watch_dir, tr_variant::unmanaged_string(""sv));
-    app_defaults_map.try_emplace(TR_KEY_watch_dir_enabled, false);
-    app_defaults_map.try_emplace(TR_KEY_watch_dir_force_generic, false);
-    app_defaults_map.try_emplace(TR_KEY_rpc_enabled, true);
-    app_defaults_map.try_emplace(TR_KEY_start_paused, false);
-    app_defaults_map.try_emplace(TR_KEY_pidfile, tr_variant::unmanaged_string(""sv));
-    auto const app_defaults = tr_variant{ std::move(app_defaults_map) };
-    return tr_sessionLoadSettings(config_dir, &app_defaults);
+    auto defaults = tr::Settings{ 6U };
+    defaults.try_emplace(TR_KEY_pidfile, tr_variant::unmanaged_string(""sv));
+    defaults.try_emplace(TR_KEY_rpc_enabled, true);
+    defaults.try_emplace(TR_KEY_start_paused, false);
+    defaults.try_emplace(TR_KEY_watch_dir, tr_variant::unmanaged_string(""sv));
+    defaults.try_emplace(TR_KEY_watch_dir_enabled, false);
+    defaults.try_emplace(TR_KEY_watch_dir_force_generic, false);
+    return defaults;
+}
+
+[[nodiscard]] auto load_settings(std::string_view const config_dir)
+{
+    auto settings = tr_sessionLoadSettings(config_dir);
+    settings.merge(get_default_settings());
+    return settings;
 }
 
 } // namespace
@@ -465,7 +471,7 @@ namespace utp_arg_helpers
 {
 auto constexpr UtpVal = "utp"sv;
 
-void utp(tr_variant::Map& settings)
+void utp(tr::Settings& settings)
 {
     if (auto const pt = settings.value_if<std::string_view>(TR_KEY_preferred_transports); pt && pt != UtpVal)
     {
@@ -488,7 +494,7 @@ void utp(tr_variant::Map& settings)
     }
 }
 
-void no_utp(tr_variant::Map& settings)
+void no_utp(tr::Settings& settings)
 {
     if (auto const pt = settings.value_if<std::string_view>(TR_KEY_preferred_transports); pt == UtpVal)
     {
@@ -519,11 +525,7 @@ bool tr_daemon::parse_args(int argc, char const* const* argv, bool* dump_setting
     *dump_settings = false;
     *foreground = false;
 
-    auto* const map = settings_.get_if<tr_variant::Map>();
-    if (map == nullptr)
-    {
-        return false;
-    }
+    auto& map = settings_;
 
     tr_optind = 1;
 
@@ -532,46 +534,46 @@ bool tr_daemon::parse_args(int argc, char const* const* argv, bool* dump_setting
         switch (c)
         {
         case 'a':
-            map->insert_or_assign(TR_KEY_rpc_whitelist, optstr);
-            map->insert_or_assign(TR_KEY_rpc_whitelist_enabled, true);
+            map.insert_or_assign(TR_KEY_rpc_whitelist, optstr);
+            map.insert_or_assign(TR_KEY_rpc_whitelist_enabled, true);
             break;
 
         case 'b':
-            map->insert_or_assign(TR_KEY_blocklist_enabled, true);
+            map.insert_or_assign(TR_KEY_blocklist_enabled, true);
             break;
 
         case 'B':
-            map->insert_or_assign(TR_KEY_blocklist_enabled, false);
+            map.insert_or_assign(TR_KEY_blocklist_enabled, false);
             break;
 
         case 'c':
-            map->insert_or_assign(TR_KEY_watch_dir, optstr);
-            map->insert_or_assign(TR_KEY_watch_dir_enabled, true);
+            map.insert_or_assign(TR_KEY_watch_dir, optstr);
+            map.insert_or_assign(TR_KEY_watch_dir_enabled, true);
             break;
 
         case 'C':
-            map->insert_or_assign(TR_KEY_watch_dir_enabled, false);
+            map.insert_or_assign(TR_KEY_watch_dir_enabled, false);
             break;
 
         case 941:
-            map->insert_or_assign(TR_KEY_incomplete_dir, optstr);
-            map->insert_or_assign(TR_KEY_incomplete_dir_enabled, true);
+            map.insert_or_assign(TR_KEY_incomplete_dir, optstr);
+            map.insert_or_assign(TR_KEY_incomplete_dir_enabled, true);
             break;
 
         case 942:
-            map->insert_or_assign(TR_KEY_incomplete_dir_enabled, false);
+            map.insert_or_assign(TR_KEY_incomplete_dir_enabled, false);
             break;
 
         case 943:
-            map->insert_or_assign(TR_KEY_default_trackers, optstr);
+            map.insert_or_assign(TR_KEY_default_trackers, optstr);
             break;
 
         case 994:
-            map->insert_or_assign(TR_KEY_sequential_download, true);
+            map.insert_or_assign(TR_KEY_sequential_download, true);
             break;
 
         case 995:
-            map->insert_or_assign(TR_KEY_sequential_download, false);
+            map.insert_or_assign(TR_KEY_sequential_download, false);
             break;
 
         case 'd':
@@ -599,125 +601,125 @@ bool tr_daemon::parse_args(int argc, char const* const* argv, bool* dump_setting
             return false;
 
         case 'o':
-            map->insert_or_assign(TR_KEY_dht_enabled, true);
+            map.insert_or_assign(TR_KEY_dht_enabled, true);
             break;
 
         case 'O':
-            map->insert_or_assign(TR_KEY_dht_enabled, false);
+            map.insert_or_assign(TR_KEY_dht_enabled, false);
             break;
 
         case 'p':
             if (auto const rpc_port = tr_num_parse<uint16_t>(optstr); rpc_port)
             {
-                map->insert_or_assign(TR_KEY_rpc_port, *rpc_port);
+                map.insert_or_assign(TR_KEY_rpc_port, *rpc_port);
             }
             break;
 
         case 't':
-            map->insert_or_assign(TR_KEY_rpc_authentication_required, true);
+            map.insert_or_assign(TR_KEY_rpc_authentication_required, true);
             break;
 
         case 'T':
-            map->insert_or_assign(TR_KEY_rpc_authentication_required, false);
+            map.insert_or_assign(TR_KEY_rpc_authentication_required, false);
             break;
 
         case 'u':
-            map->insert_or_assign(TR_KEY_rpc_username, optstr);
+            map.insert_or_assign(TR_KEY_rpc_username, optstr);
             break;
 
         case 'v':
-            map->insert_or_assign(TR_KEY_rpc_password, optstr);
+            map.insert_or_assign(TR_KEY_rpc_password, optstr);
             break;
 
         case 'w':
-            map->insert_or_assign(TR_KEY_download_dir, optstr);
+            map.insert_or_assign(TR_KEY_download_dir, optstr);
             break;
 
         case 'P':
             if (auto const peer_port = tr_num_parse<uint16_t>(optstr); peer_port)
             {
-                map->insert_or_assign(TR_KEY_peer_port, *peer_port);
+                map.insert_or_assign(TR_KEY_peer_port, *peer_port);
             }
             break;
 
         case 'm':
-            map->insert_or_assign(TR_KEY_port_forwarding_enabled, true);
+            map.insert_or_assign(TR_KEY_port_forwarding_enabled, true);
             break;
 
         case 'M':
-            map->insert_or_assign(TR_KEY_port_forwarding_enabled, false);
+            map.insert_or_assign(TR_KEY_port_forwarding_enabled, false);
             break;
 
         case 'L':
             if (auto const peer_limit_global = tr_num_parse<int64_t>(optstr); peer_limit_global && *peer_limit_global >= 0)
             {
-                map->insert_or_assign(TR_KEY_peer_limit_global, *peer_limit_global);
+                map.insert_or_assign(TR_KEY_peer_limit_global, *peer_limit_global);
             }
             break;
 
         case 'l':
             if (auto const peer_limit_tor = tr_num_parse<int64_t>(optstr); peer_limit_tor && *peer_limit_tor >= 0)
             {
-                map->insert_or_assign(TR_KEY_peer_limit_per_torrent, *peer_limit_tor);
+                map.insert_or_assign(TR_KEY_peer_limit_per_torrent, *peer_limit_tor);
             }
             break;
 
         case 800:
-            map->insert_or_assign(TR_KEY_start_paused, true);
+            map.insert_or_assign(TR_KEY_start_paused, true);
             break;
 
         case 910:
-            map->insert_or_assign(TR_KEY_encryption, TR_ENCRYPTION_REQUIRED);
+            map.insert_or_assign(TR_KEY_encryption, TR_ENCRYPTION_REQUIRED);
             break;
 
         case 911:
-            map->insert_or_assign(TR_KEY_encryption, TR_ENCRYPTION_PREFERRED);
+            map.insert_or_assign(TR_KEY_encryption, TR_ENCRYPTION_PREFERRED);
             break;
 
         case 912:
-            map->insert_or_assign(TR_KEY_encryption, TR_CLEAR_PREFERRED);
+            map.insert_or_assign(TR_KEY_encryption, TR_CLEAR_PREFERRED);
             break;
 
         case 'i':
-            map->insert_or_assign(TR_KEY_bind_address_ipv4, optstr);
+            map.insert_or_assign(TR_KEY_bind_address_ipv4, optstr);
             break;
 
         case 'I':
-            map->insert_or_assign(TR_KEY_bind_address_ipv6, optstr);
+            map.insert_or_assign(TR_KEY_bind_address_ipv6, optstr);
             break;
 
         case 'r':
-            map->insert_or_assign(TR_KEY_rpc_bind_address, optstr);
+            map.insert_or_assign(TR_KEY_rpc_bind_address, optstr);
             break;
 
         case 953:
             if (auto const ratio_limit = tr_num_parse<double>(optstr); ratio_limit)
             {
-                map->insert_or_assign(TR_KEY_seed_ratio_limit, *ratio_limit);
+                map.insert_or_assign(TR_KEY_seed_ratio_limit, *ratio_limit);
             }
-            map->insert_or_assign(TR_KEY_seed_ratio_limited, true);
+            map.insert_or_assign(TR_KEY_seed_ratio_limited, true);
             break;
 
         case 954:
-            map->insert_or_assign(TR_KEY_seed_ratio_limited, false);
+            map.insert_or_assign(TR_KEY_seed_ratio_limited, false);
             break;
 
         case 'x':
-            map->insert_or_assign(TR_KEY_pidfile, optstr);
+            map.insert_or_assign(TR_KEY_pidfile, optstr);
             break;
 
         case 'y':
-            map->insert_or_assign(TR_KEY_lpd_enabled, true);
+            map.insert_or_assign(TR_KEY_lpd_enabled, true);
             break;
 
         case 'Y':
-            map->insert_or_assign(TR_KEY_lpd_enabled, false);
+            map.insert_or_assign(TR_KEY_lpd_enabled, false);
             break;
 
         case 810:
             if (auto const level = tr_logGetLevelFromKey(optstr); level)
             {
-                map->insert_or_assign(TR_KEY_message_level, *level);
+                map.insert_or_assign(TR_KEY_message_level, *level);
             }
             else
             {
@@ -728,29 +730,29 @@ bool tr_daemon::parse_args(int argc, char const* const* argv, bool* dump_setting
 
         case 811:
             std::cerr << "WARN: --log-error is deprecated. Use --log-level=error" << std::endl;
-            map->insert_or_assign(TR_KEY_message_level, TR_LOG_ERROR);
+            map.insert_or_assign(TR_KEY_message_level, TR_LOG_ERROR);
             break;
 
         case 812:
             std::cerr << "WARN: --log-info is deprecated. Use --log-level=info" << std::endl;
-            map->insert_or_assign(TR_KEY_message_level, TR_LOG_INFO);
+            map.insert_or_assign(TR_KEY_message_level, TR_LOG_INFO);
             break;
 
         case 813:
             std::cerr << "WARN: --log-debug is deprecated. Use --log-level=debug" << std::endl;
-            map->insert_or_assign(TR_KEY_message_level, TR_LOG_DEBUG);
+            map.insert_or_assign(TR_KEY_message_level, TR_LOG_DEBUG);
             break;
 
         case 830:
-            set_preferred_transports(*map, optstr);
+            set_preferred_transports(map, optstr);
             break;
 
         case 831:
-            utp_arg_helpers::utp(*map);
+            utp_arg_helpers::utp(map);
             break;
 
         case 832:
-            utp_arg_helpers::no_utp(*map);
+            utp_arg_helpers::no_utp(map);
             break;
 
         case TR_OPT_UNK:
@@ -855,16 +857,9 @@ int tr_daemon::start([[maybe_unused]] bool foreground)
     tr_logAddInfo(fmt::format(fmt::runtime(_("Loading settings from '{path}'")), fmt::arg("path", config_dir_)));
     tr_sessionSaveSettings(session, config_dir_, settings_);
 
-    auto const* const settings_map = settings_.get_if<tr_variant::Map>();
-    if (settings_map == nullptr)
-    {
-        static auto constexpr Errmsg = "Unreachable code, please file a bug report"sv;
-        printMessage(log_stream_, TR_LOG_ERROR, MyName, Errmsg, __FILE__, __LINE__);
-        return 1;
-    }
-
+    auto const& map = settings_;
     auto pidfile_created = false;
-    auto const pid_filename = settings_map->value_if<std::string_view>(TR_KEY_pidfile).value_or(""sv);
+    auto const pid_filename = map.value_if<std::string_view>(TR_KEY_pidfile).value_or(""sv);
     if (!std::empty(pid_filename))
     {
         auto error = tr_error{};
@@ -893,7 +888,7 @@ int tr_daemon::start([[maybe_unused]] bool foreground)
         }
     }
 
-    if (settings_map->value_if<bool>(TR_KEY_rpc_authentication_required).value_or(false))
+    if (map.value_if<bool>(TR_KEY_rpc_authentication_required).value_or(false))
     {
         tr_logAddInfo(_("Requiring authentication"));
     }
@@ -908,11 +903,11 @@ int tr_daemon::start([[maybe_unused]] bool foreground)
 
     /* maybe add a watchdir */
     auto watchdir = std::unique_ptr<Watchdir>{};
-    if (settings_map->value_if<bool>(TR_KEY_watch_dir_enabled).value_or(false))
+    if (map.value_if<bool>(TR_KEY_watch_dir_enabled).value_or(false))
     {
-        auto const force_generic = settings_map->value_if<bool>(TR_KEY_watch_dir_force_generic).value_or(false);
+        auto const force_generic = map.value_if<bool>(TR_KEY_watch_dir_force_generic).value_or(false);
 
-        if (auto dir = settings_map->value_if<std::string_view>(TR_KEY_watch_dir).value_or(""sv); !std::empty(dir))
+        if (auto dir = map.value_if<std::string_view>(TR_KEY_watch_dir).value_or(""sv); !std::empty(dir))
         {
             tr_logAddInfo(fmt::format(fmt::runtime(_("Watching '{path}' for new torrent files")), fmt::arg("path", dir)));
 
@@ -931,7 +926,7 @@ int tr_daemon::start([[maybe_unused]] bool foreground)
     {
         tr_ctor* ctor = tr_ctorNew(my_session_);
 
-        if (settings_map->value_if<bool>(TR_KEY_start_paused).value_or(false))
+        if (map.value_if<bool>(TR_KEY_start_paused).value_or(false))
         {
             tr_ctorSetPaused(ctor, TR_FORCE, true);
         }
@@ -1059,7 +1054,7 @@ bool tr_daemon::init(int argc, char const* const argv[], bool* foreground, int* 
 
     if (dumpSettings)
     {
-        fmt::print("{:s}\n", tr_variant_serde::json().to_string(settings_));
+        fmt::print("{:s}\n", tr_variant_serde::json().to_string(settings_.clone()));
         return false;
     }
 

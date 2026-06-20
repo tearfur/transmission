@@ -16,6 +16,7 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
+
 #include <libtransmission/constants.h>
 #include <libtransmission/quark.h>
 #include <libtransmission/transmission.h>
@@ -32,7 +33,7 @@ class Prefs : public QObject
 
 public:
     Prefs() = default;
-    explicit Prefs(tr_variant const& settings);
+    explicit Prefs(tr::Settings const& settings);
     explicit Prefs(QString const& dir);
     Prefs(Prefs&&) = delete;
     Prefs(Prefs const&) = delete;
@@ -148,7 +149,7 @@ public:
         return val.value_or(T{});
     }
 
-    [[nodiscard]] tr_variant::Map current_settings() const;
+    [[nodiscard]] tr::Settings current_settings() const;
     void save(QString const& filename) const;
 
 signals:

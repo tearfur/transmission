@@ -38,14 +38,13 @@ class IncompleteDirTest
 protected:
     void SetUp() override
     {
-        if (auto* map = settings()->get_if<tr_variant::Map>(); map != nullptr)
-        {
-            auto const download_dir = GetParam().second;
-            map->insert_or_assign(TR_KEY_download_dir, download_dir);
-            auto const incomplete_dir = GetParam().first;
-            map->insert_or_assign(TR_KEY_incomplete_dir, incomplete_dir);
-            map->insert_or_assign(TR_KEY_incomplete_dir_enabled, true);
-        }
+        auto const download_dir = GetParam().second;
+        auto const incomplete_dir = GetParam().first;
+
+        auto& map = settings();
+        map.insert_or_assign(TR_KEY_download_dir, download_dir);
+        map.insert_or_assign(TR_KEY_incomplete_dir, incomplete_dir);
+        map.insert_or_assign(TR_KEY_incomplete_dir_enabled, true);
 
         SessionTest::SetUp();
     }
@@ -88,8 +87,7 @@ TEST_P(IncompleteDirTest, incompleteDir)
 
     auto const test_incomplete_dir_threadfunc = [](TestIncompleteDirData* data) noexcept
     {
-        auto& tor = *data->tor;
-        if (tr_ioWrite(tor, data->session->openFiles(), tor.block_loc(data->block), data->buf) == 0)
+        if (tr_ioWrite(*data->tor, data->session->openFiles(), data->tor->block_loc(data->block), data->buf) == 0)
         {
             data->tor->on_block_received(data->block);
         }

@@ -346,7 +346,7 @@ template<typename T, Serializable S>
         return to_value<T>(*value);
     }
 
-    return {};
+    return std::nullopt;
 }
 
 template<typename T, tr_quark Key, Serializable S>
@@ -489,11 +489,17 @@ bool set(S& tgt, tr_quark key, T val)
  * @param src    The source variant (expected to be a Map)
  */
 template<typename T, typename Fields>
+void load(T& tgt, Fields const& fields, tr_variant::Map const& src)
+{
+    std::apply([&tgt, &src](auto const&... field) { (field.load(&tgt, src), ...); }, fields);
+}
+
+template<typename T, typename Fields>
 void load(T& tgt, Fields const& fields, tr_variant const& src)
 {
     if (auto const* map = src.get_if<tr_variant::Map>())
     {
-        std::apply([&tgt, map](auto const&... field) { (field.load(&tgt, *map), ...); }, fields);
+        load(tgt, fields, *map);
     }
 }
 

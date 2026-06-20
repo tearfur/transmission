@@ -32,6 +32,7 @@ class Prefs;
 
 extern "C"
 {
+    // NOLINTNEXTLINE(readability-identifier-naming)
     struct tr_variant;
 }
 

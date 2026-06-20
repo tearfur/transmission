@@ -768,6 +768,28 @@ struct State
     return {};
 }
 
+void convert_keys(tr_variant& var, State& state);
+
+void convert_keys(tr_variant::Map& var, State& state)
+{
+    for (auto& [old_key, child] : var)
+    {
+        auto const new_key = convert_key(state, old_key);
+
+        // maybe change the key.
+        // IMPORTANT: this is safe even inside a range loop of `var`:
+        // tr_variant.replace_key() does not invalidate iterators
+        if (old_key != new_key)
+        {
+            var.replace_key(old_key, new_key);
+        }
+
+        state.path.push_back(new_key);
+        convert_keys(child, state);
+        state.path.pop_back();
+    }
+}
+
 void convert_keys(tr_variant& var, State& state)
 {
     var.visit(
@@ -791,22 +813,7 @@ void convert_keys(tr_variant& var, State& state)
             }
             else if constexpr (std::is_same_v<ValueType, tr_variant::Map>)
             {
-                for (auto& [old_key, child] : val)
-                {
-                    auto const new_key = convert_key(state, old_key);
-
-                    // maybe change the key.
-                    // IMPORTANT: this is safe even inside a range loop of `val`:
-                    // tr_variant.replace_key() does not invalidate iterators
-                    if (old_key != new_key)
-                    {
-                        val.replace_key(old_key, new_key);
-                    }
-
-                    state.path.push_back(new_key);
-                    convert_keys(child, state);
-                    state.path.pop_back();
-                }
+                convert_keys(val, state);
             }
         });
 }
@@ -1142,15 +1149,20 @@ void set_default_style(Style const style)
     default_style_g = style;
 }
 
+void convert(tr_variant::Map& top, Style const tgt_style)
+{
+    auto state = makeState(top);
+    state.style = tgt_style;
+    convert_keys(top, state);
+    convert_settings_encryption(top, state);
+    convert_jsonrpc(top, state);
+}
+
 void convert(tr_variant& var, Style const tgt_style)
 {
     if (auto* const top = var.get_if<tr_variant::Map>())
     {
-        auto state = makeState(*top);
-        state.style = tgt_style;
-        convert_keys(var, state);
-        convert_settings_encryption(*top, state);
-        convert_jsonrpc(*top, state);
+        convert(*top, tgt_style);
     }
 }
 
@@ -1159,8 +1171,18 @@ void convert_outgoing_data(tr_variant& var)
     convert(var, default_style());
 }
 
+void convert_outgoing_data(tr_variant::Map& top)
+{
+    convert(top, default_style());
+}
+
 void convert_incoming_data(tr_variant& var)
 {
     convert(var, Style::Tr5);
+}
+
+void convert_incoming_data(tr_variant::Map& top)
+{
+    convert(top, Style::Tr5);
 }
 } // namespace tr::api_compat

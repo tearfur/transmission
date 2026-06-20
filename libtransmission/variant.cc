@@ -366,6 +366,19 @@ tr_variant* tr_variantListAdd(tr_variant* const var)
     return nullptr;
 }
 
+size_t tr_variantListSize(tr_variant const* const var)
+{
+    if (var != nullptr)
+    {
+        if (auto const* const vec = var->get_if<tr_variant::Vector>(); vec != nullptr)
+        {
+            return std::size(*vec);
+        }
+    }
+
+    return {};
+}
+
 tr_variant* tr_variantDictAdd(tr_variant* const var, tr_quark key)
 {
     TR_ASSERT(var != nullptr);
@@ -377,11 +390,6 @@ tr_variant* tr_variantDictAdd(tr_variant* const var, tr_quark key)
     }
 
     return {};
-}
-
-tr_variant* tr_variantDictAddInt(tr_variant* const var, tr_quark const key, int64_t const val)
-{
-    return dict_set(var, key, val);
 }
 
 tr_variant* tr_variantDictAddList(tr_variant* const var, tr_quark const key, size_t const n_reserve)
@@ -469,3 +477,33 @@ bool tr_variant_serde::to_file(tr_variant const& var, std::string_view filename)
 
     return true;
 }
+
+namespace tr::settings
+{
+
+Settings load(std::string_view filename)
+{
+    if (tr_sys_path_exists(filename))
+    {
+        if (auto var = tr_variant_serde::json().parse_file(filename))
+        {
+            if (auto* settings = var->get_if<tr_variant::Map>())
+            {
+                tr::api_compat::convert_incoming_data(*settings);
+                return std::move(*settings);
+            }
+        }
+    }
+
+    return {};
+}
+
+bool save(std::string_view filename, Settings const& settings)
+{
+    auto copy = settings.clone();
+    tr::api_compat::convert_outgoing_data(copy);
+
+    return tr_variant_serde::json().to_file(tr_variant{ std::move(copy) }, filename);
+}
+
+} // namespace tr::settings

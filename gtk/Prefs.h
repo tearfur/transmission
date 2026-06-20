@@ -19,16 +19,16 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnull-dereference"
 
-[[nodiscard]] tr_variant::Map& gtr_pref_get_map();
+[[nodiscard]] tr::Settings& gtr_pref_get_all();
 
 [[nodiscard]] bool gtr_pref_has_key(tr_quark key);
 
 template<typename T>
 [[nodiscard]] std::optional<T> gtr_pref_lookup(tr_quark const key)
 {
-    auto const& map = gtr_pref_get_map();
+    auto const& prefs = gtr_pref_get_all();
 
-    if (auto iter = map.find(key); iter != map.end())
+    if (auto iter = prefs.find(key); iter != prefs.end())
     {
         return tr::serializer::to_value<T>(iter->second);
     }
@@ -50,9 +50,7 @@ template<typename T>
 template<typename T>
 void gtr_pref_set(tr_quark const key, T const& val)
 {
-    using namespace tr::serializer;
-    auto& map = gtr_pref_get_map();
-    map.insert_or_assign(key, to_variant(val));
+    gtr_pref_get_all().insert_or_assign(key, tr::serializer::to_variant(val));
 }
 
 void gtr_pref_init(std::string_view config_dir);
@@ -60,13 +58,13 @@ void gtr_pref_init(std::string_view config_dir);
 template<std::integral T>
 T gtr_pref_int_get(tr_quark const key)
 {
-    return gtr_pref_get_map().value_if<T>(key).value_or(T{});
+    return gtr_pref_get_all().value_if<T>(key).value_or(T{});
 }
 
 template<std::integral T>
 void gtr_pref_int_set(tr_quark key, T value)
 {
-    gtr_pref_get_map().insert_or_assign(key, value);
+    gtr_pref_get_all().insert_or_assign(key, value);
 }
 
 double gtr_pref_double_get(tr_quark key);
@@ -81,6 +79,5 @@ std::string gtr_pref_string_get(tr_quark key);
 void gtr_pref_string_set(tr_quark key, std::string_view value);
 
 void gtr_pref_save(tr_session* /*session*/);
-tr_variant& gtr_pref_get_all();
 
 #pragma GCC diagnostic pop // ignore -Wnull-dereference

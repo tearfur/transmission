@@ -483,35 +483,20 @@ bool Application::Impl::on_rpc_changed_idle(tr_rpc_callback_type type, std::opti
     case TR_RPC_SESSION_CHANGED:
         {
             auto const* const session = core_->get_session();
-            auto newvals = tr_sessionGetSettings(session);
 
             // determine which settings changed
             auto changed_keys = small::set<tr_quark>{};
-            auto& oldvals = gtr_pref_get_all();
+            auto& vals = gtr_pref_get_all();
             auto const serde = tr_variant_serde::benc();
-            if (auto const* const newvals_map = newvals.get_if<tr_variant::Map>(); newvals_map != nullptr)
+
+            for (auto& [key, newval] : tr_sessionGetSettings(session))
             {
-                changed_keys.reserve(std::size(*newvals_map));
-
-                for (auto const& [key, newval] : *newvals_map)
+                if (auto iter = vals.find(key); iter == vals.end() || serde.to_string(iter->second) != serde.to_string(newval))
                 {
-                    bool changed = true;
-
-                    if (tr_variant const* oldval = tr_variantDictFind(&oldvals, key); oldval != nullptr)
-                    {
-                        changed = serde.to_string(*oldval) != serde.to_string(newval);
-                    }
-
-                    if (changed)
-                    {
-                        changed_keys.emplace(key);
-                    }
+                    changed_keys.emplace(key);
+                    vals.insert_or_assign(key, std::move(newval));
                 }
             }
-
-            // update our settings while preserving non-session GUI prefs
-            newvals.merge(oldvals);
-            oldvals = std::move(newvals);
 
             // emit change notifications
             for (auto const& changed_key : changed_keys)

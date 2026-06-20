@@ -12,6 +12,7 @@
 #include <iostream>
 #include <memory>
 #include <mutex> // std::once_flag()
+#include <optional>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -316,37 +317,34 @@ private:
 class SessionTest : public SandboxedTest
 {
 private:
-    std::shared_ptr<tr_variant> settings_;
+    std::optional<tr::Settings> settings_;
 
-    tr_session* sessionInit(tr_variant& settings)
+    tr_session* sessionInit(tr::Settings& settings)
     {
-        auto* const settings_map = settings.get_if<tr_variant::Map>();
-        EXPECT_NE(settings_map, nullptr);
-
         // download dir
         auto key = TR_KEY_download_dir;
-        auto val = settings_map->value_if<std::string_view>(key).value_or("Downloads"sv);
+        auto val = settings.value_if<std::string_view>(key).value_or("Downloads"sv);
         auto const download_dir = tr_pathbuf{ sandboxDir(), '/', val };
         tr_sys_dir_create(download_dir, TR_SYS_DIR_CREATE_PARENTS, 0700);
-        (*settings_map)[key] = download_dir.sv();
+        settings.insert_or_assign(key, download_dir.sv());
 
         // incomplete dir
         key = TR_KEY_incomplete_dir;
-        val = settings_map->value_if<std::string_view>(key).value_or("Incomplete"sv);
+        val = settings.value_if<std::string_view>(key).value_or("Incomplete"sv);
         auto const incomplete_dir = tr_pathbuf{ sandboxDir(), '/', val };
-        (*settings_map)[key] = incomplete_dir.sv();
+        settings.insert_or_assign(key, incomplete_dir.sv());
 
         // blocklists
         tr_sys_dir_create(tr_pathbuf{ sandboxDir(), "/blocklists" }, TR_SYS_DIR_CREATE_PARENTS, 0700);
 
         // fill in any missing settings
-        settings_map->try_emplace(TR_KEY_port_forwarding_enabled, false);
-        settings_map->try_emplace(TR_KEY_dht_enabled, false);
-        settings_map->try_emplace(TR_KEY_message_level, verbose_ ? TR_LOG_DEBUG : TR_LOG_ERROR);
+        settings.try_emplace(TR_KEY_port_forwarding_enabled, false);
+        settings.try_emplace(TR_KEY_dht_enabled, false);
+        settings.try_emplace(TR_KEY_message_level, verbose_ ? TR_LOG_DEBUG : TR_LOG_ERROR);
 
         // disable ip query
-        settings_map->insert_or_assign(TR_KEY_ip_endpoints_ipv4, tr_variant::Vector{});
-        settings_map->insert_or_assign(TR_KEY_ip_endpoints_ipv6, tr_variant::Vector{});
+        settings.insert_or_assign(TR_KEY_ip_endpoints_ipv4, tr_variant::Vector{});
+        settings.insert_or_assign(TR_KEY_ip_endpoints_ipv6, tr_variant::Vector{});
 
         return tr_sessionInit(sandboxDir(), !verbose_, settings);
     }
@@ -509,21 +507,21 @@ protected:
 
     tr_session* session_ = nullptr;
 
-    tr_variant* settings()
+    tr::Settings& settings()
     {
         if (!settings_)
         {
-            settings_ = std::make_shared<tr_variant>(tr_variant::make_map(10U));
+            settings_.emplace(10U);
         }
 
-        return settings_.get();
+        return *settings_;
     }
 
     void SetUp() override
     {
         SandboxedTest::SetUp();
 
-        session_ = sessionInit(*settings());
+        session_ = sessionInit(settings());
     }
 
     void TearDown() override

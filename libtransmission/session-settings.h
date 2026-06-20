@@ -45,7 +45,7 @@ struct SessionSettings final
 public:
     SessionSettings() = default;
 
-    explicit SessionSettings(tr_variant const& src)
+    explicit SessionSettings(tr::Settings const& src)
     {
         load(src);
     }
@@ -53,24 +53,21 @@ public:
     void fixup_from_preferred_transports();
     void fixup_to_preferred_transports();
 
-    void load(tr_variant const& src)
+    void load(tr::Settings const& src)
     {
         tr::serializer::load(*this, Fields, src);
 
-        if (auto const* map = src.get_if<tr_variant::Map>())
+        if (src.contains(TR_KEY_preferred_transports))
         {
-            if (map->contains(TR_KEY_preferred_transports))
-            {
-                fixup_from_preferred_transports();
-            }
-            else
-            {
-                fixup_to_preferred_transports();
-            }
+            fixup_from_preferred_transports();
+        }
+        else
+        {
+            fixup_to_preferred_transports();
         }
     }
 
-    [[nodiscard]] tr_variant::Map save() const
+    [[nodiscard]] tr::Settings save() const
     {
         return tr::serializer::save(*this, Fields);
     }
@@ -225,17 +222,17 @@ struct SessionAltSpeedSettings final
 public:
     SessionAltSpeedSettings() = default;
 
-    explicit SessionAltSpeedSettings(tr_variant const& src)
+    explicit SessionAltSpeedSettings(tr::Settings const& src)
     {
         load(src);
     }
 
-    void load(tr_variant const& src)
+    void load(tr::Settings const& src)
     {
         tr::serializer::load(*this, Fields, src);
     }
 
-    [[nodiscard]] tr_variant::Map save() const
+    [[nodiscard]] tr::Settings save() const
     {
         return tr::serializer::save(*this, Fields);
     }
@@ -273,17 +270,17 @@ struct RpcServerSettings final
 public:
     RpcServerSettings() = default;
 
-    explicit RpcServerSettings(tr_variant const& src)
+    explicit RpcServerSettings(tr::Settings const& src)
     {
         load(src);
     }
 
-    void load(tr_variant const& src)
+    void load(tr::Settings const& src)
     {
         tr::serializer::load(*this, Fields, src);
     }
 
-    [[nodiscard]] tr_variant::Map save() const
+    [[nodiscard]] tr::Settings save() const
     {
         return tr::serializer::save(*this, Fields);
     }
@@ -329,125 +326,4 @@ public:
         Field<&RpcServerSettings::whitelist_str>{ TR_KEY_rpc_whitelist },
         Field<&RpcServerSettings::is_whitelist_enabled>{ TR_KEY_rpc_whitelist_enabled });
 };
-
-struct SessionSettingsSnapshot final
-{
-    enum class Group : uint8_t
-    {
-        Session,
-        AltSpeeds,
-        RpcServer
-    };
-
-    SessionSettings session;
-    SessionAltSpeedSettings alt_speeds;
-    RpcServerSettings rpc_server;
-
-    SessionSettingsSnapshot() = default;
-
-    explicit SessionSettingsSnapshot(tr_variant const& src)
-    {
-        load(src);
-    }
-
-    void load(tr_variant const& src)
-    {
-        session.load(src);
-        alt_speeds.load(src);
-        rpc_server.load(src);
-    }
-
-    [[nodiscard]] tr_variant::Map save() const
-    {
-        auto map = session.save();
-
-        for (auto& [key, value] : alt_speeds.save())
-        {
-            map.insert_or_assign(key, std::move(value));
-        }
-
-        for (auto& [key, value] : rpc_server.save())
-        {
-            map.insert_or_assign(key, std::move(value));
-        }
-
-        return map;
-    }
-
-    [[nodiscard]] static std::optional<Group> classify(tr_quark key)
-    {
-        if (detail::settings_fields_contains<SessionSettings>(key))
-        {
-            return Group::Session;
-        }
-
-        if (detail::settings_fields_contains<SessionAltSpeedSettings>(key))
-        {
-            return Group::AltSpeeds;
-        }
-
-        if (detail::settings_fields_contains<RpcServerSettings>(key))
-        {
-            return Group::RpcServer;
-        }
-
-        return {};
-    }
-
-    [[nodiscard]] static bool has_key(tr_quark key)
-    {
-        return classify(key).has_value();
-    }
-
-    template<typename T>
-    [[nodiscard]] std::optional<T> get(tr_quark key) const
-    {
-        if (auto value = tr::serializer::get<T>(session, key))
-        {
-            return value;
-        }
-
-        if (auto value = tr::serializer::get<T>(alt_speeds, key))
-        {
-            return value;
-        }
-
-        return tr::serializer::get<T>(rpc_server, key);
-    }
-
-    template<typename T>
-    bool set(tr_quark key, T value)
-    {
-        return tr::serializer::set(session, key, value) || tr::serializer::set(alt_speeds, key, value) ||
-            tr::serializer::set(rpc_server, key, std::move(value));
-    }
-
-    bool set(tr_quark key, tr_variant const& value)
-    {
-        return tr::serializer::set_from_variant(session, key, value) ||
-            tr::serializer::set_from_variant(alt_speeds, key, value) ||
-            tr::serializer::set_from_variant(rpc_server, key, value);
-    }
-
-    [[nodiscard]] std::optional<std::pair<tr_quark, tr_variant>> keyval(tr_quark key) const
-    {
-        if (auto value = tr::serializer::to_variant(session, key))
-        {
-            return { { key, std::move(*value) } };
-        }
-
-        if (auto value = tr::serializer::to_variant(alt_speeds, key))
-        {
-            return { { key, std::move(*value) } };
-        }
-
-        if (auto value = tr::serializer::to_variant(rpc_server, key))
-        {
-            return { { key, std::move(*value) } };
-        }
-
-        return {};
-    }
-};
-
 } // namespace tr

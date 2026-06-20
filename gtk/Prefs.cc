@@ -45,11 +45,11 @@ std::string gl_confdir;
  * This is where we initialize the preferences file with the default values.
  * If you add a new preferences key, you /must/ add a default value here.
  */
-[[nodiscard]] tr_variant get_default_app_settings()
+[[nodiscard]] auto get_default_app_settings()
 {
     auto const dir = get_default_download_dir();
 
-    auto map = tr_variant::Map{};
+    auto map = tr::Settings{ 29U };
     map.try_emplace(TR_KEY_blocklist_updates_enabled, true);
     map.try_emplace(TR_KEY_compact_view, false);
     map.try_emplace(TR_KEY_details_window_height, 500);
@@ -79,21 +79,16 @@ std::string gl_confdir;
     map.try_emplace(TR_KEY_trash_can_enabled, true);
     map.try_emplace(TR_KEY_watch_dir, dir);
     map.try_emplace(TR_KEY_watch_dir_enabled, false);
-    return tr_variant{ std::move(map) };
+    return map;
 }
 
-tr_variant& getPrefs()
+[[nodiscard]] auto load_settings(std::string_view const config_dir)
 {
-    static auto settings = tr_variant{};
-
-    if (!settings.has_value())
-    {
-        auto const app_defaults = get_default_app_settings();
-        settings.merge(tr_sessionLoadSettings(gl_confdir, &app_defaults));
-    }
-
+    auto settings = tr_sessionLoadSettings(config_dir);
+    settings.merge(get_default_app_settings());
     return settings;
 }
+
 } // namespace
 
 void gtr_pref_init(std::string_view config_dir)
@@ -101,22 +96,15 @@ void gtr_pref_init(std::string_view config_dir)
     gl_confdir = config_dir;
 }
 
-tr_variant& gtr_pref_get_all()
+tr::Settings& gtr_pref_get_all()
 {
-    return getPrefs();
-}
-
-// FIXME(ckerr) remove annoying pragma
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wnull-dereference"
-tr_variant::Map& gtr_pref_get_map()
-{
-    return *getPrefs().get_if<tr_variant::Map>();
+    static auto settings = load_settings(gl_confdir);
+    return settings;
 }
 
 bool gtr_pref_has_key(tr_quark const key)
 {
-    return gtr_pref_get_map().contains(key);
+    return gtr_pref_get_all().contains(key);
 }
 
 double gtr_pref_double_get(tr_quark const key)
@@ -161,6 +149,5 @@ void gtr_pref_string_set(tr_quark const key, std::string_view const value)
 
 void gtr_pref_save(tr_session* session)
 {
-    tr_sessionSaveSettings(session, gl_confdir, getPrefs());
+    tr_sessionSaveSettings(session, gl_confdir, gtr_pref_get_all());
 }
-#pragma GCC diagnostic pop

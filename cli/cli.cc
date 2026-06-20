@@ -318,7 +318,7 @@ void sigHandler(int signal)
         return "Tracker gave an error:"sv;
     case tr_stat::Error::LocalError:
         return "Error:"sv;
-    case tr_stat::Error::Ok:
+    default:
         return ""sv;
     }
 }
@@ -344,7 +344,7 @@ int tr_main(int argc, char* argv[])
     auto settings = tr_sessionLoadSettings(config_dir);
 
     /* the command line overrides defaults */
-    if (parseCommandLine(*settings.get_if<tr_variant::Map>(), argc, (char const**)argv) != 0)
+    if (parseCommandLine(settings, argc, (char const**)argv) != 0)
     {
         return EXIT_FAILURE;
     }

@@ -266,14 +266,12 @@ TEST_F(SessionTest, sessionId)
 TEST_F(SessionTest, getDefaultSettingsIncludesSubmodules)
 {
     auto settings = tr_sessionGetDefaultSettings();
-    auto* settings_map = settings.get_if<tr_variant::Map>();
-    ASSERT_NE(settings_map, nullptr);
 
     // Choose a setting from each of [tr_session, tr_session_alt_speeds, tr_rpc_server] to test all of them.
     // These are all `false` by default
     for (auto const& key : { TR_KEY_peer_port_random_on_start, TR_KEY_alt_speed_time_enabled, TR_KEY_rpc_enabled })
     {
-        auto flag = settings_map->value_if<bool>(key);
+        auto flag = settings.value_if<bool>(key);
         ASSERT_TRUE(flag);
         EXPECT_FALSE(*flag);
     }
@@ -289,11 +287,9 @@ TEST_F(SessionTest, honorsSettings)
     // Choose a setting from each of [tr_session, tr_session_alt_speeds, tr_rpc_server] to test all of them.
     // These are all `false` by default
     auto settings = tr_sessionGetDefaultSettings();
-    auto* settings_map = settings.get_if<tr_variant::Map>();
-    ASSERT_NE(settings_map, nullptr);
     for (auto const& key : { TR_KEY_peer_port_random_on_start, TR_KEY_alt_speed_time_enabled, TR_KEY_rpc_enabled })
     {
-        settings_map->insert_or_assign(key, true);
+        settings.insert_or_assign(key, true);
     }
     auto* session = tr_sessionInit(sandboxDir(), false, settings);
 
@@ -318,11 +314,9 @@ TEST_F(SessionTest, savesSettings)
 
     // Choose a setting from each of [tr_session, tr_session_alt_speeds, tr_rpc_server] to test all of them.
     auto settings = tr_sessionGetSettings(session_);
-    auto* settings_map = settings.get_if<tr_variant::Map>();
-    ASSERT_NE(settings_map, nullptr);
     for (auto const& key : { TR_KEY_peer_port_random_on_start, TR_KEY_alt_speed_time_enabled, TR_KEY_rpc_enabled })
     {
-        auto flag = settings_map->value_if<bool>(key);
+        auto flag = settings.value_if<bool>(key);
         ASSERT_TRUE(flag);
         EXPECT_TRUE(*flag);
     }

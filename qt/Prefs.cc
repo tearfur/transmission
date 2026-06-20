@@ -22,23 +22,18 @@
 #include "Prefs.h"
 #include "UserMetaType.h"
 
-namespace api_compat = tr::api_compat;
 using namespace std::string_view_literals;
 
 // ---
 
-Prefs::Prefs(tr_variant const& settings)
+Prefs::Prefs(tr::Settings const& settings)
 {
     tr::serializer::load(*this, Fields, settings);
 }
 
 Prefs::Prefs(QString const& dir)
 {
-    auto settings = tr_sessionLoadSettings(dir.toStdString());
-    if (settings.holds_alternative<tr_variant::Map>())
-    {
-        tr::serializer::load(*this, Fields, settings);
-    }
+    tr::serializer::load(*this, Fields, tr_sessionLoadSettings(dir.toStdString()));
 }
 
 Prefs::PrefItem const& Prefs::item(tr_quark const key)
@@ -120,11 +115,10 @@ bool Prefs::isCore(tr_quark const key)
     }
 }
 
-tr_variant::Map Prefs::current_settings() const
+tr::Settings Prefs::current_settings() const
 {
     auto map = tr::serializer::save(*this, Fields);
     map.erase(TR_KEY_filter_text);
-
     return map;
 }
 
@@ -140,18 +134,8 @@ std::pair<tr_quark, tr_variant> Prefs::keyvalImpl(tr_quark const key) const
 void Prefs::save(QString const& filename) const
 {
     auto const filename_str = filename.toStdString();
-    auto serde = tr_variant_serde::json();
-
-    auto settings = tr_variant{ current_settings() };
-    if (auto var = serde.parse_file(filename_str))
-    {
-        api_compat::convert_incoming_data(*var);
-        settings.merge(std::move(*var));
-    }
-    if (auto* const settings_map = settings.get_if<tr_variant::Map>())
-    {
-        settings_map->erase(TR_KEY_filter_text);
-    }
-    api_compat::convert_outgoing_data(settings);
-    serde.to_file(settings, filename_str);
+    auto settings = current_settings();
+    settings.merge(tr::settings::load(filename_str));
+    settings.erase(TR_KEY_filter_text);
+    tr::settings::save(filename_str, settings);
 }

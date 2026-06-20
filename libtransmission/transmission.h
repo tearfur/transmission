@@ -23,12 +23,12 @@
 #include "libtransmission/constants.h"
 #include "libtransmission/types.h"
 #include "libtransmission/values.h"
+#include "libtransmission/variant.h"
 
 struct tr_ctor;
 struct tr_session;
 struct tr_torrent;
 struct tr_torrent_metainfo;
-struct tr_variant;
 
 // --- Startup & Shutdown
 
@@ -65,63 +65,18 @@ struct tr_variant;
  */
 [[nodiscard]] std::string tr_getDefaultDownloadDir();
 
-/**
- * Add libtransmission's default settings to the benc dictionary.
- *
- * Example:
- * @code
- *     int64_t i;
- *
- *     auto settings = tr_sessionGetDefaultSettings();
- *     if (tr_variantDictFindInt(&settings, TR_PREFS_KEY_PEER_PORT, &i))
- *         fprintf(stderr, "the default peer port is %d\n", (int)i);
- * @endcode
- *
- * @return a variant map of the default settinggs
- * @see `tr_sessionLoadSettings()`
- * @see `tr_sessionInit()`
- * @see `tr_getDefaultConfigDir()`
- */
-tr_variant tr_sessionGetDefaultSettings();
+// Get a session's default settings
+[[nodiscard]] tr::Settings tr_sessionGetDefaultSettings();
 
-/**
- * Add the session's current configuration settings to the benc dictionary.
- *
- * TODO: if we ever make libtransmissionapp, this would go there.
- *
- * @return a variant map of the session's current settings
- * @param session the session to query
- * @see `tr_sessionGetDefaultSettings()`
- */
-tr_variant tr_sessionGetSettings(tr_session const* session);
+// Get `session`'s current settings
+[[nodiscard]] tr::Settings tr_sessionGetSettings(tr_session const* session);
 
-/**
- * Load settings from the configuration directory's settings.json file,
- * using libtransmission's default settings as fallbacks for missing keys.
- *
- * TODO: if we ever make libtransmissionapp, this would go there.
- *
- * @param config_dir the configuration directory to find settings.json
- * @param app_defaults optional tr_variant containing the app-specific defaults
- * @return the loaded settings
- * @see `tr_sessionGetDefaultSettings()`
- * @see `tr_sessionInit()`
- * @see `tr_sessionSaveSettings()`
- */
-[[nodiscard]] tr_variant tr_sessionLoadSettings(std::string_view config_dir, tr_variant const* app_defaults = nullptr);
+// Load settings from disk.
+// Fills in any missing settings with defaults from `tr_sessionGetDefaultSettings()`.
+[[nodiscard]] tr::Settings tr_sessionLoadSettings(std::string_view config_dir);
 
-/**
- * Add the session's configuration settings to the benc dictionary
- * and save it to the configuration directory's settings.json file.
- *
- * TODO: if we ever make libtransmissionapp, this would go there.
- *
- * @param session    the session to save
- * @param config_dir  the directory to write to
- * @param client_settings the dictionary to save
- * @see `tr_sessionLoadSettings()`
- */
-void tr_sessionSaveSettings(tr_session* session, std::string_view config_dir, tr_variant const& client_settings);
+// Save `session`'s settings to disk.
+void tr_sessionSaveSettings(tr_session* session, std::string_view config_dir, tr::Settings const& app_settings);
 
 /**
  * @brief Initialize a libtransmission session.
@@ -140,11 +95,11 @@ void tr_sessionSaveSettings(tr_session* session, std::string_view config_dir, tr
  * @see `tr_sessionLoadSettings()`
  * @see `tr_getDefaultConfigDir()`
  */
-tr_session* tr_sessionInit(std::string_view config_dir, bool message_queueing_enabled, tr_variant const& settings);
+tr_session* tr_sessionInit(std::string_view config_dir, bool message_queueing_enabled, tr::Settings const& settings);
 
 /** @brief Update a session's settings from a benc dictionary
            like to the one used in `tr_sessionInit()` */
-void tr_sessionSet(tr_session* session, tr_variant const& settings);
+void tr_sessionSet(tr_session* session, tr::Settings const& settings);
 
 /** @brief Rescan the blocklists directory and
            reload whatever blocklist files are found there */
