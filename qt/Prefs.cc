@@ -22,7 +22,6 @@
 #include "Prefs.h"
 #include "UserMetaType.h"
 
-namespace api_compat = tr::api_compat;
 using namespace std::string_view_literals;
 
 // ---
