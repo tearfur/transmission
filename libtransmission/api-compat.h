@@ -7,7 +7,7 @@
 
 #include <cstdint> // uint8_t
 
-struct tr_variant;
+#include "libtransmission/variant.h"
 
 namespace tr::api_compat
 {
@@ -20,6 +20,10 @@ enum class Style : uint8_t
 void convert(tr_variant& var, Style tgt_style);
 void convert_incoming_data(tr_variant& var);
 void convert_outgoing_data(tr_variant& var);
+
+void convert(tr_variant::Map& top, Style tgt_style);
+void convert_incoming_data(tr_variant::Map& top);
+void convert_outgoing_data(tr_variant::Map& top);
 
 [[nodiscard]] Style default_style();
 void set_default_style(Style style);
