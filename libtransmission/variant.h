@@ -487,60 +487,6 @@ template<std::integral Val>
     return {};
 }
 
-// --- Strings
-
-bool tr_variantGetStrView(tr_variant const* variant, std::string_view* setme);
-
-// --- Real Numbers
-
-bool tr_variantGetReal(tr_variant const* variant, double* value_setme);
-
-// --- Booleans
-
-bool tr_variantGetBool(tr_variant const* variant, bool* setme);
-
-// --- Ints
-
-bool tr_variantGetInt(tr_variant const* var, int64_t* setme);
-
-// --- Lists
-
-void tr_variantInitList(tr_variant* initme, size_t n_reserve);
-
-tr_variant* tr_variantListAdd(tr_variant* var);
-tr_variant* tr_variantListChild(tr_variant* var, size_t pos);
-
-[[nodiscard]] constexpr size_t tr_variantListSize(tr_variant const* const var)
-{
-    if (var != nullptr)
-    {
-        if (auto const* const vec = var->get_if<tr_variant::Vector>(); vec != nullptr)
-        {
-            return std::size(*vec);
-        }
-    }
-
-    return {};
-}
-
-// --- Dictionaries
-
-void tr_variantInitDict(tr_variant* initme, size_t n_reserve);
-
-tr_variant* tr_variantDictAdd(tr_variant* var, tr_quark key);
-tr_variant* tr_variantDictAddStrView(tr_variant* var, tr_quark key, std::string_view value);
-tr_variant* tr_variantDictAddList(tr_variant* var, tr_quark key, size_t n_reserve);
-tr_variant* tr_variantDictAddDict(tr_variant* var, tr_quark key, size_t n_reserve);
-
-bool tr_variantDictChild(tr_variant* var, size_t pos, tr_quark* setme_key, tr_variant** setme_value);
-tr_variant* tr_variantDictFind(tr_variant* var, tr_quark key);
-bool tr_variantDictFindList(tr_variant* var, tr_quark key, tr_variant** setme);
-bool tr_variantDictFindDict(tr_variant* var, tr_quark key, tr_variant** setme_value);
-bool tr_variantDictFindInt(tr_variant* var, tr_quark key, int64_t* setme);
-
-/* this is only quasi-supported. don't rely on it too heavily outside of libT */
-void tr_variantMergeDicts(tr_variant* tgt, tr_variant const* src);
-
 /**
  * Helper class for serializing and deserializing benc/json data.
  *
@@ -644,3 +590,26 @@ namespace settings
 bool save(std::string_view filename, Settings const& settings);
 } // namespace settings
 } // namespace tr
+
+// Deprecated C API. Do not use.
+bool tr_variantDictChild(tr_variant* var, size_t pos, tr_quark* setme_key, tr_variant** setme_value);
+bool tr_variantDictFindDict(tr_variant* var, tr_quark key, tr_variant** setme_value);
+bool tr_variantDictFindInt(tr_variant* var, tr_quark key, int64_t* setme);
+bool tr_variantDictFindList(tr_variant* var, tr_quark key, tr_variant** setme);
+bool tr_variantGetBool(tr_variant const* variant, bool* setme);
+bool tr_variantGetInt(tr_variant const* var, int64_t* setme);
+bool tr_variantGetReal(tr_variant const* variant, double* value_setme);
+bool tr_variantGetStrView(tr_variant const* variant, std::string_view* setme);
+size_t tr_variantListSize(tr_variant const* var);
+tr_variant* tr_variantDictAdd(tr_variant* var, tr_quark key);
+tr_variant* tr_variantDictAddDict(tr_variant* var, tr_quark key, size_t n_reserve);
+tr_variant* tr_variantDictAddList(tr_variant* var, tr_quark key, size_t n_reserve);
+tr_variant* tr_variantDictAddStrView(tr_variant* var, tr_quark key, std::string_view value);
+tr_variant* tr_variantDictFind(tr_variant* var, tr_quark key);
+tr_variant* tr_variantListAdd(tr_variant* var);
+tr_variant* tr_variantListChild(tr_variant* var, size_t pos);
+void tr_variantInitDict(tr_variant* initme, size_t n_reserve);
+void tr_variantInitList(tr_variant* initme, size_t n_reserve);
+void tr_variantMergeDicts(tr_variant* tgt, tr_variant const* src);
+
+// --- Dictionaries

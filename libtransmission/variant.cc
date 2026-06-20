@@ -366,6 +366,19 @@ tr_variant* tr_variantListAdd(tr_variant* const var)
     return nullptr;
 }
 
+size_t tr_variantListSize(tr_variant const* const var)
+{
+    if (var != nullptr)
+    {
+        if (auto const* const vec = var->get_if<tr_variant::Vector>(); vec != nullptr)
+        {
+            return std::size(*vec);
+        }
+    }
+
+    return {};
+}
+
 tr_variant* tr_variantDictAdd(tr_variant* const var, tr_quark key)
 {
     TR_ASSERT(var != nullptr);
