@@ -103,8 +103,8 @@ struct tr_sys_path_info
 
 struct tr_sys_path_capacity
 {
-    uintmax_t available = -1;
-    uintmax_t capacity = -1;
+    uintmax_t available = {};
+    uintmax_t capacity = {};
 };
 
 /**
