@@ -42,6 +42,7 @@
 #include "libtransmission/announcer.h"
 #include "libtransmission/bandwidth.h"
 #include "libtransmission/blocklist.h"
+#include "libtransmission/converters.h"
 #include "libtransmission/interned-string.h"
 #include "libtransmission/ip-cache.h"
 #include "libtransmission/local-data.h"
@@ -54,7 +55,6 @@
 #include "libtransmission/session-alt-speeds.h"
 #include "libtransmission/session-id.h"
 #include "libtransmission/session-thread.h"
-#include "libtransmission/serializer.h"
 #include "libtransmission/stats.h"
 #include "libtransmission/timer.h"
 #include "libtransmission/torrent-queue.h"
@@ -820,7 +820,7 @@ public:
 
     bool deserialize_encryption_mode(tr_variant const& var) noexcept
     {
-        return tr::serializer::Converters::deserialize(var, &settings_.encryption_mode);
+        return tr::serializer::to_value(var, &settings_.encryption_mode);
     }
 
     [[nodiscard]] constexpr auto preallocationMode() const noexcept
@@ -882,14 +882,14 @@ public:
 
     [[nodiscard]] auto save_preferred_transports() const
     {
-        auto var = tr::serializer::Converters::serialize(settings_.preferred_transports);
+        auto var = tr::serializer::to_variant(settings_.preferred_transports);
         TR_ASSERT(var.has_value());
         return var;
     }
 
     bool load_preferred_transports(tr_variant const& var) noexcept
     {
-        if (!tr::serializer::Converters::deserialize(var, &settings_.preferred_transports))
+        if (!tr::serializer::to_value(var, &settings_.preferred_transports))
         {
             return false;
         }

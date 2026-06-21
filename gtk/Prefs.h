@@ -4,9 +4,11 @@
 
 #pragma once
 
-#include <libtransmission/transmission.h> /* tr_variant, tr_session */
+#include <libtransmission-app/converters.h>
+
+#include <libtransmission/transmission.h>
+#include <libtransmission/converters.h>
 #include <libtransmission/quark.h>
-#include <libtransmission/serializer.h>
 #include <libtransmission/variant.h>
 
 #include <cstdint> // int64_t
