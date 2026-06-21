@@ -6,10 +6,12 @@
 #pragma once
 
 #include <array>
+#include <cstddef> // size_t
 #include <cstdint> // int64_t
 #include <map>
 #include <optional>
 #include <string_view>
+#include <type_traits>
 #include <vector>
 
 #include <QObject>
@@ -20,6 +22,7 @@
 
 #include <libtransmission/transmission.h>
 #include <libtransmission/quark.h>
+#include <libtransmission/serializer.h>
 
 #include "Prefs.h"
 #include "RpcClient.h"
@@ -101,18 +104,19 @@ public:
     }
 
     RpcResponseFuture exec(tr_quark method, tr_variant* args);
+    RpcResponseFuture exec(tr_quark method, tr_variant::Map params);
 
     using Tag = RpcQueue::Tag;
-    Tag torrentSet(torrent_ids_t const& torrent_ids, tr_quark key, bool val);
-    Tag torrentSet(torrent_ids_t const& torrent_ids, tr_quark key, int val);
-    Tag torrentSet(torrent_ids_t const& torrent_ids, tr_quark key, double val);
-    Tag torrentSet(torrent_ids_t const& torrent_ids, tr_quark key, QString const& val);
-    Tag torrentSet(torrent_ids_t const& torrent_ids, tr_quark key, std::vector<int> const& val);
-    Tag torrentSet(torrent_ids_t const& torrent_ids, tr_quark key, QStringList const& val);
+
+    template<typename T, typename... Rest>
+    Tag torrentSet(torrent_ids_t const& torrent_ids, tr_quark const key1, T const& val1, Rest const&... rest)
+    {
+        return torrentSetImpl(makeParams(TR_KEY_ids, torrent_ids, key1, val1, rest...));
+    }
 
     void torrentSetLocation(torrent_ids_t const& torrent_ids, QString const& path, bool do_move);
     void torrentRenamePath(torrent_ids_t const& torrent_ids, QString const& oldpath, QString const& newname);
-    void addTorrent(AddData const& add_me, tr_variant* args_dict);
+    void addTorrent(AddData const& add_me, tr_variant::Map args_dict);
     void initTorrents(torrent_ids_t const& ids = {});
     void pauseTorrents(torrent_ids_t const& torrent_ids = {});
     void startTorrents(torrent_ids_t const& torrent_ids = {});
@@ -165,21 +169,58 @@ private slots:
     void onDuplicatesTimer();
 
 private:
+    [[nodiscard]] static tr_variant getTorrentIdsVariant(torrent_ids_t const& torrent_ids);
+
+    template<typename T>
+    static void addParamPair(tr_variant::Map& params, tr_quark const key, T const& val)
+    {
+        if constexpr (std::is_same_v<std::remove_cvref_t<T>, torrent_ids_t>)
+        {
+            if (auto var = getTorrentIdsVariant(val); var.has_value())
+            {
+                params.insert_or_assign(key, std::move(var));
+            }
+        }
+        else
+        {
+            params.insert_or_assign(key, tr::serializer::to_variant(val));
+        }
+    }
+
+    template<typename T, typename... Rest>
+    static void addParamPairs(tr_variant::Map& params, tr_quark const key, T const& val, Rest const&... rest)
+    {
+        addParamPair(params, key, val);
+
+        if constexpr (sizeof...(rest) != 0U)
+        {
+            addParamPairs(params, rest...);
+        }
+    }
+
+    template<typename T, typename... Rest>
+    [[nodiscard]] static tr_variant::Map makeParams(tr_quark const key1, T const& val1, Rest const&... rest)
+    {
+        static_assert(sizeof...(rest) % 2U == 0U, "Expected key/value argument pairs");
+
+        auto params = tr_variant::Map{ 1U + static_cast<size_t>(sizeof...(rest) / 2U) };
+        addParamPairs(params, key1, val1, rest...);
+
+        return params;
+    }
+
     void start();
 
     void updateStats(tr_variant* args_dict);
     void updateInfo(tr_variant* args_dict);
 
-    Tag torrentSetImpl(tr_variant* args);
+    Tag torrentSetImpl(tr_variant::Map params);
     void sessionSet(tr_quark key, tr_variant val);
     void pumpRequests();
     void sendTorrentRequest(tr_quark method, torrent_ids_t const& torrent_ids);
     void refreshTorrents(torrent_ids_t const& ids, TorrentProperties props);
 
     static void updateStats(tr_variant const& args_dict, tr_session_stats& stats);
-
-    void addOptionalIds(tr_variant::Map& params, torrent_ids_t const& torrent_ids) const;
-    void addOptionalIds(tr_variant* args_dict, torrent_ids_t const& torrent_ids) const;
 
     QString const config_dir_;
     Prefs& prefs_;
