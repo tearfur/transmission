@@ -596,18 +596,9 @@ bool tr_variantDictChild(tr_variant* var, size_t pos, tr_quark* setme_key, tr_va
 bool tr_variantDictFindDict(tr_variant* var, tr_quark key, tr_variant** setme_value);
 bool tr_variantDictFindInt(tr_variant* var, tr_quark key, int64_t* setme);
 bool tr_variantDictFindList(tr_variant* var, tr_quark key, tr_variant** setme);
-bool tr_variantGetBool(tr_variant const* variant, bool* setme);
-bool tr_variantGetInt(tr_variant const* var, int64_t* setme);
-bool tr_variantGetReal(tr_variant const* variant, double* value_setme);
-bool tr_variantGetStrView(tr_variant const* variant, std::string_view* setme);
-size_t tr_variantListSize(tr_variant const* var);
 tr_variant* tr_variantDictAdd(tr_variant* var, tr_quark key);
 tr_variant* tr_variantDictAddDict(tr_variant* var, tr_quark key, size_t n_reserve);
 tr_variant* tr_variantDictAddStrView(tr_variant* var, tr_quark key, std::string_view value);
 tr_variant* tr_variantDictFind(tr_variant* var, tr_quark key);
 tr_variant* tr_variantListChild(tr_variant* var, size_t pos);
-void tr_variantInitDict(tr_variant* initme, size_t n_reserve);
-void tr_variantInitList(tr_variant* initme, size_t n_reserve);
 void tr_variantMergeDicts(tr_variant* tgt, tr_variant const* src);
-
-// --- Dictionaries

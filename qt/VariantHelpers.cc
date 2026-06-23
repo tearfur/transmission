@@ -5,12 +5,14 @@
 
 #include "VariantHelpers.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <limits>
 #include <string_view>
 
 #include <QDateTime>
+#include <QString>
 #include <QUrl>
 
 #include <libtransmission/converters.h>
@@ -26,162 +28,21 @@ namespace ser = tr::serializer;
 namespace trqt::variant_helpers
 {
 
-bool change(double& setme, double const& value)
-{
-    bool const changed = std::fabs(setme - value) > std::numeric_limits<double>::epsilon();
-
-    if (changed)
-    {
-        setme = value;
-    }
-
-    return changed;
-}
-
-bool change(Speed& setme, tr_variant const* value)
-{
-    auto const byps = getValue<int>(value);
-    return byps && change(setme, Speed{ *byps, Speed::Units::Byps });
-}
-
-bool change(TorrentHash& setme, tr_variant const* value)
-{
-    auto const hash_string = getValue<std::string_view>(value);
-    return hash_string && change(setme, TorrentHash{ *hash_string });
-}
-
 bool change(Peer& setme, tr_variant const* value)
 {
-    auto changed = false;
-
-    auto pos = size_t{ 0 };
-    auto key = tr_quark{};
-    tr_variant* child = nullptr;
-    while (tr_variantDictChild(const_cast<tr_variant*>(value), pos++, &key, &child))
-    {
-        switch (key)
-        {
-#define HANDLE_KEY(key, field) \
-    case TR_KEY_##key: \
-        changed = change(setme.field, child) || changed; \
-        break;
-
-            HANDLE_KEY(address, address)
-            HANDLE_KEY(client_is_choked, client_is_choked)
-            HANDLE_KEY(client_is_interested, client_is_interested)
-            HANDLE_KEY(client_name, client_name)
-            HANDLE_KEY(flag_str, flags)
-            HANDLE_KEY(is_downloading_from, is_downloading_from)
-            HANDLE_KEY(is_encrypted, is_encrypted)
-            HANDLE_KEY(is_incoming, is_incoming)
-            HANDLE_KEY(is_uploading_to, is_uploading_to)
-            HANDLE_KEY(peer_is_choked, peer_is_choked)
-            HANDLE_KEY(peer_is_interested, peer_is_interested)
-            HANDLE_KEY(port, port)
-            HANDLE_KEY(progress, progress)
-            HANDLE_KEY(rate_to_client, rate_to_client)
-            HANDLE_KEY(rate_to_peer, rate_to_peer)
-#undef HANDLE_KEY
-        default:
-            break;
-        }
-    }
-
-    return changed;
+    return !ser::load(setme, Peer::Fields, *value).empty();
 }
 
 bool change(TorrentFile& setme, tr_variant const* value)
 {
-    auto changed = false;
-
-    auto pos = size_t{ 0 };
-    auto key = tr_quark{};
-    tr_variant* child = nullptr;
-    while (tr_variantDictChild(const_cast<tr_variant*>(value), pos++, &key, &child))
-    {
-        switch (key)
-        {
-#define HANDLE_KEY(key) \
-    case TR_KEY_##key: \
-        changed = change(setme.key, child) || changed; \
-        break;
-
-            HANDLE_KEY(priority)
-            HANDLE_KEY(wanted)
-#undef HANDLE_KEY
-#define HANDLE_KEY(key, field) \
-    case TR_KEY_##key: \
-        changed = change(setme.field, child) || changed; \
-        break;
-
-            HANDLE_KEY(bytes_completed, have)
-            HANDLE_KEY(length, size)
-            HANDLE_KEY(name, filename)
-#undef HANDLE_KEY
-        default:
-            break;
-        }
-    }
-
-    return changed;
+    return !ser::load(setme, TorrentFile::Fields, *value).empty();
 }
 
 bool change(TrackerStat& setme, tr_variant const* value)
 {
-    bool changed = false;
-    bool site_changed = false;
-
-    auto pos = size_t{ 0 };
-    auto key = tr_quark{};
-    tr_variant* child = nullptr;
-    while (tr_variantDictChild(const_cast<tr_variant*>(value), pos++, &key, &child))
-    {
-        bool field_changed = false;
-
-        switch (key)
-        {
-#define HANDLE_KEY(key) \
-    case TR_KEY_##key: \
-        field_changed = change(setme.key, child); \
-        break;
-            HANDLE_KEY(announce)
-            HANDLE_KEY(announce_state)
-            HANDLE_KEY(download_count)
-            HANDLE_KEY(has_announced)
-            HANDLE_KEY(has_scraped)
-            HANDLE_KEY(id)
-            HANDLE_KEY(is_backup)
-            HANDLE_KEY(last_announce_peer_count)
-            HANDLE_KEY(last_announce_result)
-            HANDLE_KEY(last_announce_start_time)
-            HANDLE_KEY(last_announce_succeeded)
-            HANDLE_KEY(last_announce_time)
-            HANDLE_KEY(last_announce_timed_out)
-            HANDLE_KEY(last_scrape_result)
-            HANDLE_KEY(last_scrape_start_time)
-            HANDLE_KEY(last_scrape_succeeded)
-            HANDLE_KEY(last_scrape_time)
-            HANDLE_KEY(last_scrape_timed_out)
-            HANDLE_KEY(leecher_count)
-            HANDLE_KEY(next_announce_time)
-            HANDLE_KEY(next_scrape_time)
-            HANDLE_KEY(scrape_state)
-            HANDLE_KEY(seeder_count)
-            HANDLE_KEY(sitename)
-            HANDLE_KEY(tier)
-
-#undef HANDLE_KEY
-        default:
-            break;
-        }
-
-        if (field_changed)
-        {
-            site_changed |= key == TR_KEY_announce || key == TR_KEY_sitename;
-        }
-
-        changed = true;
-    }
+    auto const changed_keys = ser::load(setme, TrackerStat::Fields, *value);
+    auto const site_changed = std::ranges::binary_search(changed_keys, TR_KEY_announce) ||
+        std::ranges::binary_search(changed_keys, TR_KEY_sitename);
 
     if (site_changed && !setme.announce.isEmpty() && trApp != nullptr)
     {
@@ -201,36 +62,13 @@ bool change(TrackerStat& setme, tr_variant const* value)
         trApp->load_favicon(setme.announce);
     }
 
-    return changed;
+    return !changed_keys.empty();
 }
 
 ///
 
 namespace
 {
-bool toInt(tr_variant const& src, int* tgt)
-{
-    if (auto const val = src.value_if<int64_t>())
-    {
-        if (*val < std::numeric_limits<int>::min() || *val > std::numeric_limits<int>::max())
-        {
-            return false;
-        }
-
-        *tgt = static_cast<int>(*val);
-        return true;
-    }
-
-    return false;
-}
-
-tr_variant fromInt(int const& val)
-{
-    return static_cast<int64_t>(val);
-}
-
-// ---
-
 bool toQDateTime(tr_variant const& src, QDateTime* tgt)
 {
     if (auto const val = ser::to_value<int64_t>(src))
@@ -264,6 +102,42 @@ tr_variant fromQString(QString const& val)
 {
     return val.toStdString();
 }
+
+// ---
+
+bool toSpeed(tr_variant const& src, Speed* tgt)
+{
+    if (auto const val = ser::to_value<int64_t>(src))
+    {
+        *tgt = Speed{ *val, Speed::Units::Byps };
+        return true;
+    }
+
+    return false;
+}
+
+tr_variant fromSpeed(Speed const& src)
+{
+    return ser::to_variant(static_cast<int64_t>(src.base_quantity()));
+}
+
+// ---
+
+bool toTorrentHash(tr_variant const& src, TorrentHash* tgt)
+{
+    if (auto const val = src.value_if<std::string_view>())
+    {
+        *tgt = TorrentHash{ *val };
+        return true;
+    }
+
+    return false;
+}
+
+tr_variant fromTorrentHash(TorrentHash const& src)
+{
+    return ser::to_variant(src.toString());
+}
 } // namespace
 
 } // namespace trqt::variant_helpers
@@ -275,15 +149,6 @@ tr_variant fromQString(QString const& val)
 namespace tr::serializer
 {
 namespace vh = trqt::variant_helpers;
-
-tr_variant Converter<int>::to_variant(int const& src)
-{
-    return vh::fromInt(src);
-}
-bool Converter<int>::to_value(tr_variant const& src, int* tgt)
-{
-    return vh::toInt(src, tgt);
-}
 
 tr_variant Converter<QDateTime>::to_variant(QDateTime const& src)
 {
@@ -301,6 +166,24 @@ tr_variant Converter<QString>::to_variant(QString const& src)
 bool Converter<QString>::to_value(tr_variant const& src, QString* tgt)
 {
     return vh::toQString(src, tgt);
+}
+
+tr_variant Converter<Speed>::to_variant(Speed const& src)
+{
+    return vh::fromSpeed(src);
+}
+bool Converter<Speed>::to_value(tr_variant const& src, Speed* tgt)
+{
+    return vh::toSpeed(src, tgt);
+}
+
+tr_variant Converter<TorrentHash>::to_variant(TorrentHash const& src)
+{
+    return vh::fromTorrentHash(src);
+}
+bool Converter<TorrentHash>::to_value(tr_variant const& src, TorrentHash* tgt)
+{
+    return vh::toTorrentHash(src, tgt);
 }
 
 } // namespace tr::serializer

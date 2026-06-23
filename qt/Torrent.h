@@ -11,6 +11,8 @@
 #include <cstdint> // uint64_t
 #include <ctime> // time_t
 #include <optional>
+#include <string_view>
+#include <tuple>
 #include <vector>
 
 #include <QIcon>
@@ -21,6 +23,8 @@
 
 #include <libtransmission/crypto-utils.h>
 #include <libtransmission/quark.h>
+#include <libtransmission/serializer.h>
+#include <libtransmission/types.h>
 
 #include "IconCache.h"
 #include "QtCompat.h"
@@ -29,12 +33,6 @@
 class QPixmap;
 
 class Prefs;
-
-extern "C"
-{
-    // NOLINTNEXTLINE(readability-identifier-naming)
-    struct tr_variant;
-}
 
 struct Peer
 {
@@ -53,6 +51,26 @@ struct Peer
     Speed rate_to_client;
     Speed rate_to_peer;
     double progress = {};
+
+    template<auto MemberPtr>
+    using Field = tr::serializer::Field<MemberPtr>;
+
+    static constexpr auto Fields = std::make_tuple(
+        Field<&Peer::address>{ TR_KEY_address },
+        Field<&Peer::client_is_choked>{ TR_KEY_client_is_choked },
+        Field<&Peer::client_is_interested>{ TR_KEY_client_is_interested },
+        Field<&Peer::client_name>{ TR_KEY_client_name },
+        Field<&Peer::flags>{ TR_KEY_flag_str },
+        Field<&Peer::is_downloading_from>{ TR_KEY_is_downloading_from },
+        Field<&Peer::is_encrypted>{ TR_KEY_is_encrypted },
+        Field<&Peer::is_incoming>{ TR_KEY_is_incoming },
+        Field<&Peer::is_uploading_to>{ TR_KEY_is_uploading_to },
+        Field<&Peer::peer_is_choked>{ TR_KEY_peer_is_choked },
+        Field<&Peer::peer_is_interested>{ TR_KEY_peer_is_interested },
+        Field<&Peer::port>{ TR_KEY_port },
+        Field<&Peer::progress>{ TR_KEY_progress },
+        Field<&Peer::rate_to_client>{ TR_KEY_rate_to_client },
+        Field<&Peer::rate_to_peer>{ TR_KEY_rate_to_peer });
 };
 
 using PeerList = std::vector<Peer>;
@@ -86,6 +104,36 @@ struct TrackerStat
     QString last_announce_result;
     QString last_scrape_result;
     QString sitename;
+
+    template<auto MemberPtr>
+    using Field = tr::serializer::Field<MemberPtr>;
+
+    static constexpr auto Fields = std::make_tuple(
+        Field<&TrackerStat::announce>{ TR_KEY_announce },
+        Field<&TrackerStat::announce_state>{ TR_KEY_announce_state },
+        Field<&TrackerStat::download_count>{ TR_KEY_download_count },
+        Field<&TrackerStat::has_announced>{ TR_KEY_has_announced },
+        Field<&TrackerStat::has_scraped>{ TR_KEY_has_scraped },
+        Field<&TrackerStat::id>{ TR_KEY_id },
+        Field<&TrackerStat::is_backup>{ TR_KEY_is_backup },
+        Field<&TrackerStat::last_announce_peer_count>{ TR_KEY_last_announce_peer_count },
+        Field<&TrackerStat::last_announce_result>{ TR_KEY_last_announce_result },
+        Field<&TrackerStat::last_announce_start_time>{ TR_KEY_last_announce_start_time },
+        Field<&TrackerStat::last_announce_succeeded>{ TR_KEY_last_announce_succeeded },
+        Field<&TrackerStat::last_announce_time>{ TR_KEY_last_announce_time },
+        Field<&TrackerStat::last_announce_timed_out>{ TR_KEY_last_announce_timed_out },
+        Field<&TrackerStat::last_scrape_result>{ TR_KEY_last_scrape_result },
+        Field<&TrackerStat::last_scrape_start_time>{ TR_KEY_last_scrape_start_time },
+        Field<&TrackerStat::last_scrape_succeeded>{ TR_KEY_last_scrape_succeeded },
+        Field<&TrackerStat::last_scrape_time>{ TR_KEY_last_scrape_time },
+        Field<&TrackerStat::last_scrape_timed_out>{ TR_KEY_last_scrape_timed_out },
+        Field<&TrackerStat::leecher_count>{ TR_KEY_leecher_count },
+        Field<&TrackerStat::next_announce_time>{ TR_KEY_next_announce_time },
+        Field<&TrackerStat::next_scrape_time>{ TR_KEY_next_scrape_time },
+        Field<&TrackerStat::scrape_state>{ TR_KEY_scrape_state },
+        Field<&TrackerStat::seeder_count>{ TR_KEY_seeder_count },
+        Field<&TrackerStat::sitename>{ TR_KEY_sitename },
+        Field<&TrackerStat::tier>{ TR_KEY_tier });
 };
 
 using TrackerStatsList = std::vector<TrackerStat>;
@@ -98,6 +146,16 @@ struct TorrentFile
     QString filename;
     uint64_t size = 0;
     uint64_t have = 0;
+
+    template<auto MemberPtr>
+    using Field = tr::serializer::Field<MemberPtr>;
+
+    static constexpr auto Fields = std::make_tuple(
+        Field<&TorrentFile::filename>{ TR_KEY_name },
+        Field<&TorrentFile::have>{ TR_KEY_bytes_completed },
+        Field<&TorrentFile::priority>{ TR_KEY_priority },
+        Field<&TorrentFile::size>{ TR_KEY_length },
+        Field<&TorrentFile::wanted>{ TR_KEY_wanted });
 };
 
 using FileList = std::vector<TorrentFile>;

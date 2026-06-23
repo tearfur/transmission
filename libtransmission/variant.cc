@@ -291,30 +291,10 @@ tr_variant* tr_variantListChild(tr_variant* const var, size_t pos)
     return {};
 }
 
-bool tr_variantGetInt(tr_variant const* const var, int64_t* setme)
-{
-    return value_if(var, setme);
-}
-
-bool tr_variantGetStrView(tr_variant const* const var, std::string_view* setme)
-{
-    return value_if(var, setme);
-}
-
-bool tr_variantGetBool(tr_variant const* const var, bool* setme)
-{
-    return value_if(var, setme);
-}
-
-bool tr_variantGetReal(tr_variant const* const var, double* setme)
-{
-    return value_if(var, setme);
-}
-
 bool tr_variantDictFindInt(tr_variant* const var, tr_quark key, int64_t* setme)
 {
     auto const* const child = tr_variantDictFind(var, key);
-    return tr_variantGetInt(child, setme);
+    return value_if(child, setme);
 }
 
 bool tr_variantDictFindList(tr_variant* const var, tr_quark key, tr_variant** setme)
@@ -340,31 +320,6 @@ bool tr_variantDictFindDict(tr_variant* const var, tr_quark key, tr_variant** se
 }
 
 // ---
-
-void tr_variantInitList(tr_variant* initme, size_t n_reserve)
-{
-    auto vec = tr_variant::Vector{};
-    vec.reserve(n_reserve);
-    *initme = std::move(vec);
-}
-
-void tr_variantInitDict(tr_variant* initme, size_t n_reserve)
-{
-    *initme = tr_variant::Map{ n_reserve };
-}
-
-size_t tr_variantListSize(tr_variant const* const var)
-{
-    if (var != nullptr)
-    {
-        if (auto const* const vec = var->get_if<tr_variant::Vector>(); vec != nullptr)
-        {
-            return std::size(*vec);
-        }
-    }
-
-    return {};
-}
 
 tr_variant* tr_variantDictAdd(tr_variant* const var, tr_quark key)
 {
