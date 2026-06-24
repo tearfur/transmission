@@ -52,11 +52,6 @@
 	path = third-party/small
 	# synced with https://github.com/alandefreitas/small.git
 	url = https://github.com/transmissiontorrent/small.git
-[submodule "third-party/rapidjson"]
-	path = third-party/rapidjson
-	# synced with https://github.com/Tencent/rapidjson.git
-	url = https://github.com/transmissiontorrent/rapidjson.git
-	fetchRecurseSubmodules = false
 [submodule "third-party/rpavlik-cmake-modules"]
 	path = third-party/rpavlik-cmake-modules
 	# synced with https://github.com/rpavlik/cmake-modules.git
@@ -64,3 +59,7 @@
 [submodule "third-party/sigslot"]
 	path = third-party/sigslot
 	url = https://github.com/transmissiontorrent/sigslot
+[submodule "third-party/yyjson"]
+	path = third-party/yyjson
+	# synced with https://github.com/ibireme/yyjson.git
+	url = https://github.com/ibireme/yyjson.git

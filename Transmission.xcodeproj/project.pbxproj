@@ -169,6 +169,7 @@
 		A25964A7106D73A800453B31 /* announcer.h in Headers */ = {isa = PBXBuildFile; fileRef = A25964A5106D73A800453B31 /* announcer.h */; };
 		A25BFD69167BED3B0039D1AA /* variant-benc.cc in Sources */ = {isa = PBXBuildFile; fileRef = A25BFD63167BED3B0039D1AA /* variant-benc.cc */; };
 		A25BFD6B167BED3B0039D1AA /* variant-json.cc in Sources */ = {isa = PBXBuildFile; fileRef = A25BFD65167BED3B0039D1AA /* variant-json.cc */; };
+		EE6E510C2F2A1A1000A1B2C3 /* yyjson.c in Sources */ = {isa = PBXBuildFile; fileRef = EE6E510D2F2A1A1000A1B2C3 /* yyjson.c */; };
 		A25BFD6D167BED3B0039D1AA /* variant.cc in Sources */ = {isa = PBXBuildFile; fileRef = A25BFD67167BED3B0039D1AA /* variant.cc */; };
 		A25BFD6E167BED3B0039D1AA /* variant.h in Headers */ = {isa = PBXBuildFile; fileRef = A25BFD68167BED3B0039D1AA /* variant.h */; };
 		A25D2CBD0CF4C73E0096A262 /* stats.cc in Sources */ = {isa = PBXBuildFile; fileRef = A25D2CBB0CF4C7190096A262 /* stats.cc */; };
@@ -967,6 +968,8 @@
 		A25964A5106D73A800453B31 /* announcer.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = announcer.h; sourceTree = "<group>"; };
 		A25BFD63167BED3B0039D1AA /* variant-benc.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "variant-benc.cc"; sourceTree = "<group>"; };
 		A25BFD65167BED3B0039D1AA /* variant-json.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "variant-json.cc"; sourceTree = "<group>"; };
+		EE6E510D2F2A1A1000A1B2C3 /* yyjson.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = yyjson.c; sourceTree = "<group>"; };
+		EE6E510E2F2A1A1000A1B2C3 /* yyjson.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = yyjson.h; sourceTree = "<group>"; };
 		A25BFD67167BED3B0039D1AA /* variant.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = variant.cc; sourceTree = "<group>"; };
 		A25BFD68167BED3B0039D1AA /* variant.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = variant.h; sourceTree = "<group>"; };
 		A25D2CBA0CF4C7190096A262 /* stats.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = stats.h; sourceTree = "<group>"; };
@@ -1842,6 +1845,7 @@
 				C15E58AC219A37C600AB292F /* utils */,
 				A22CFCB50FC24F630009BD3E /* dht */,
 				C3CEBB9E27949A3900683BE0 /* libdeflate */,
+				EE6E510F2F2A1A1000A1B2C3 /* yyjson */,
 				A2E384BF130DFA49001F501B /* libutp */,
 				BE75C3570C72A0D600DBEFE0 /* libevent */,
 				BE1183410CE15DF00002D0F3 /* libminiupnp */,
@@ -2355,6 +2359,15 @@
 			);
 			name = libdeflate;
 			path = "third-party/libdeflate";
+			sourceTree = "<group>";
+		};
+		EE6E510F2F2A1A1000A1B2C3 /* yyjson */ = {
+			isa = PBXGroup;
+			children = (
+				EE6E510E2F2A1A1000A1B2C3 /* yyjson.h */,
+				EE6E510D2F2A1A1000A1B2C3 /* yyjson.c */,
+			);
+			path = "third-party/yyjson/src";
 			sourceTree = "<group>";
 		};
 		C3CEBBDB27949FA400683BE0 /* arm */ = {
@@ -3471,6 +3484,7 @@
 				A2AA9BE1132CAC8E00FA131E /* announcer-udp.cc in Sources */,
 				A25BFD69167BED3B0039D1AA /* variant-benc.cc in Sources */,
 				A25BFD6B167BED3B0039D1AA /* variant-json.cc in Sources */,
+				EE6E510C2F2A1A1000A1B2C3 /* yyjson.c in Sources */,
 				A25BFD6D167BED3B0039D1AA /* variant.cc in Sources */,
 				A2EA52311686AC0D00180493 /* quark.cc in Sources */,
 				A2AF23C816B44FA0003BC59E /* log.cc in Sources */,
@@ -4288,7 +4302,7 @@
 					"third-party/libpsl/include",
 					"third-party/libutp/include",
 					"third-party/utfcpp/source",
-					"third-party/rapidjson/include",
+					"third-party/yyjson/src",
 					"third-party/wildmat",
 				);
 				OTHER_CFLAGS = (
@@ -4297,7 +4311,6 @@
 					"-D__TRANSMISSION__",
 					"-DWIDE_INTEGER_DISABLE_FLOAT_INTEROP",
 					"-DWIDE_INTEGER_DISABLE_IOSTREAM",
-					"-DRAPIDJSON_HAS_STDSTRING=1",
 					"-DHAVE_FLOCK",
 					"-DWITH_CCRYPTO",
 				);
@@ -4309,7 +4322,7 @@
 					"third-party/fmt/include",
 					"third-party/sigslot/include",
 					"third-party/small/include",
-					"third-party/rapidjson/include",
+					"third-party/yyjson/src",
 					"third-party/libb64/include",
 					"third-party/libdeflate",
 					"third-party/libevent/include",
@@ -4540,7 +4553,7 @@
 					"third-party/libpsl/include",
 					"third-party/libutp/include",
 					"third-party/utfcpp/source",
-					"third-party/rapidjson/include",
+					"third-party/yyjson/src",
 					"third-party/wildmat",
 				);
 				OTHER_CFLAGS = (
@@ -4549,7 +4562,6 @@
 					"-D__TRANSMISSION__",
 					"-DWIDE_INTEGER_DISABLE_FLOAT_INTEROP",
 					"-DWIDE_INTEGER_DISABLE_IOSTREAM",
-					"-DRAPIDJSON_HAS_STDSTRING=1",
 					"-DHAVE_FLOCK",
 					"-DWITH_CCRYPTO",
 				);
@@ -4561,7 +4573,7 @@
 					"third-party/fmt/include",
 					"third-party/sigslot/include",
 					"third-party/small/include",
-					"third-party/rapidjson/include",
+					"third-party/yyjson/src",
 					"third-party/libb64/include",
 					"third-party/libdeflate",
 					"third-party/libevent/include",
@@ -4872,7 +4884,7 @@
 					"third-party/libpsl/include",
 					"third-party/libutp/include",
 					"third-party/utfcpp/source",
-					"third-party/rapidjson/include",
+					"third-party/yyjson/src",
 					"third-party/wildmat",
 				);
 				OTHER_CFLAGS = (
@@ -4881,7 +4893,6 @@
 					"-D__TRANSMISSION__",
 					"-DWIDE_INTEGER_DISABLE_FLOAT_INTEROP",
 					"-DWIDE_INTEGER_DISABLE_IOSTREAM",
-					"-DRAPIDJSON_HAS_STDSTRING=1",
 					"-DHAVE_FLOCK",
 					"-DWITH_CCRYPTO",
 				);
@@ -4893,7 +4904,7 @@
 					"third-party/fmt/include",
 					"third-party/sigslot/include",
 					"third-party/small/include",
-					"third-party/rapidjson/include",
+					"third-party/yyjson/src",
 					"third-party/libb64/include",
 					"third-party/libdeflate",
 					"third-party/libevent/include",

@@ -196,6 +196,19 @@ TEST_P(JSONTest, testUtf8)
     EXPECT_EQ("\xf0\x9f\xa4\x94"sv, *sv);
 }
 
+TEST_P(JSONTest, utf8Bom)
+{
+    static auto constexpr Input = "\xEF\xBB\xBF{ \"key\": 1 }"sv;
+
+    auto var = tr_variant_serde::json().inplace().parse(Input).value_or(tr_variant{});
+    auto* map = var.get_if<tr_variant::Map>();
+    ASSERT_NE(map, nullptr);
+
+    auto i = map->value_if<int64_t>(tr_quark_new("key"sv));
+    ASSERT_TRUE(i);
+    EXPECT_EQ(1, *i);
+}
+
 TEST_P(JSONTest, test1)
 {
     static auto constexpr Input =

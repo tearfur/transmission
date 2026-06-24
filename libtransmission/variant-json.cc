@@ -4,31 +4,19 @@
 // License text can be found in the licenses/ folder.
 
 #include <algorithm>
-#include <array>
 #include <cerrno> /* EILSEQ, EINVAL */
-#include <cstddef> // std::byte
-#include <cstdint> // uint16_t
+#include <cstdlib> // free()
 #include <optional>
-#include <stack>
 #include <string>
 #include <string_view>
 #include <type_traits>
-#include <utility>
-#include <variant>
 #include <vector>
 
 #include <fmt/format.h>
 
 #include <small/vector.hpp>
 
-#include <rapidjson/encodedstream.h>
-#include <rapidjson/encodings.h>
-#include <rapidjson/error/en.h>
-#include <rapidjson/memorystream.h>
-#include <rapidjson/prettywriter.h>
-#include <rapidjson/reader.h>
-#include <rapidjson/stringbuffer.h>
-#include <rapidjson/writer.h>
+#include <yyjson.h>
 
 #define LIBTRANSMISSION_VARIANT_MODULE
 
@@ -42,178 +30,98 @@ namespace
 {
 namespace parse_helpers
 {
-struct json_to_variant_handler : public rapidjson::BaseReaderHandler<>
+auto constexpr MaxDepth = size_t{ 64U };
+
+[[nodiscard]] auto make_string_view(char const* const data, size_t const len) -> std::string_view
 {
-    static_assert(std::is_same_v<Ch, char>);
+    return { data != nullptr ? data : "", len };
+}
 
-    explicit json_to_variant_handler(tr_variant* const top)
-    {
-        stack_.emplace(top);
-    }
+[[nodiscard]] bool to_variant(yyjson_val* const source, tr_variant* const target, size_t const depth)
+{
+    TR_ASSERT(source != nullptr);
+    TR_ASSERT(target != nullptr);
 
-    bool Null()
+    if (yyjson_is_null(source))
     {
-        *get_leaf() = nullptr;
+        *target = nullptr;
         return true;
     }
-
-    bool Bool(bool const val)
+    if (yyjson_is_bool(source))
     {
-        *get_leaf() = val;
+        *target = yyjson_get_bool(source);
         return true;
     }
-
-    bool Int(int const val)
+    if (yyjson_is_uint(source))
     {
-        *get_leaf() = val;
+        *target = yyjson_get_uint(source);
         return true;
     }
-
-    bool Uint(unsigned const val)
+    if (yyjson_is_sint(source))
     {
-        *get_leaf() = val;
+        *target = yyjson_get_sint(source);
         return true;
     }
-
-    bool Int64(int64_t const val)
+    if (yyjson_is_real(source))
     {
-        *get_leaf() = val;
+        *target = yyjson_get_real(source);
         return true;
     }
-
-    bool Uint64(uint64_t const val)
+    if (yyjson_is_str(source))
     {
-        *get_leaf() = val;
+        *target = make_string_view(yyjson_get_str(source), yyjson_get_len(source));
         return true;
     }
-
-    bool Double(double const val)
+    if (depth >= MaxDepth)
     {
-        *get_leaf() = val;
-        return true;
-    }
-
-    bool String(Ch const* const str, rapidjson::SizeType const len, bool const copy)
-    {
-        *get_leaf() = copy ? tr_variant{ std::string_view{ str, len } } : tr_variant::unmanaged_string({ str, len });
-        return true;
-    }
-
-    bool StartObject()
-    {
-        if (auto* node = push_stack())
-        {
-            *node = tr_variant::Map{ prealloc_guess() };
-            return true;
-        }
-
         return false;
     }
 
-    bool Key(Ch const* const str, rapidjson::SizeType const len, bool const copy)
+    if (yyjson_is_arr(source))
     {
-        if (copy)
+        *target = tr_variant::Vector{};
+        auto* const out = target->get_if<tr_variant::Vector>();
+        TR_ASSERT(out != nullptr);
+        out->reserve(yyjson_arr_size(source));
+
+        auto index = size_t{};
+        auto max = size_t{};
+        auto* child = static_cast<yyjson_val*>(nullptr);
+        yyjson_arr_foreach(source, index, max, child)
         {
-            key_buf_.assign(str, len);
-            cur_key_ = key_buf_;
+            auto& node = out->emplace_back();
+            if (!to_variant(child, &node, depth + 1U))
+            {
+                return false;
+            }
         }
-        else
+
+        return true;
+    }
+    if (yyjson_is_obj(source))
+    {
+        *target = tr_variant::Map{ yyjson_obj_size(source) };
+        auto* const out = target->get_if<tr_variant::Map>();
+        TR_ASSERT(out != nullptr);
+
+        auto index = size_t{};
+        auto max = size_t{};
+        auto* key = static_cast<yyjson_val*>(nullptr);
+        auto* val = static_cast<yyjson_val*>(nullptr);
+        yyjson_obj_foreach(source, index, max, key, val)
         {
-            cur_key_ = std::string_view{ str, len };
+            auto& node = (*out)[tr_quark_new(make_string_view(yyjson_get_str(key), yyjson_get_len(key)))];
+            if (!to_variant(val, &node, depth + 1U))
+            {
+                return false;
+            }
         }
+
         return true;
     }
 
-    bool EndObject(rapidjson::SizeType const len)
-    {
-        pop_stack(len);
-        return true;
-    }
-
-    bool StartArray()
-    {
-        if (auto* node = push_stack())
-        {
-            *node = tr_variant::make_vector(prealloc_guess());
-            return true;
-        }
-
-        return false;
-    }
-
-    bool EndArray(rapidjson::SizeType const len)
-    {
-        pop_stack(len);
-        return true;
-    }
-
-private:
-    [[nodiscard]] size_t prealloc_guess() const noexcept
-    {
-        auto const depth = std::size(stack_);
-        return depth < MaxDepth ? prealloc_guess_[depth] : 0;
-    }
-
-    tr_variant* push_stack() noexcept
-    {
-        return std::size(stack_) < MaxDepth ? stack_.emplace(get_leaf()) : nullptr;
-    }
-
-    void pop_stack(rapidjson::SizeType const len) noexcept
-    {
-#ifdef TR_ENABLE_ASSERTS
-        if (auto* top = stack_.top(); top->holds_alternative<tr_variant::Vector>())
-        {
-            TR_ASSERT(std::size(*top->get_if<tr_variant::Vector>()) == len);
-        }
-        else if (top->holds_alternative<tr_variant::Map>())
-        {
-            TR_ASSERT(std::size(*top->get_if<tr_variant::Map>()) == len);
-        }
-#endif
-
-        auto const depth = std::size(stack_);
-        stack_.pop();
-        TR_ASSERT(!std::empty(stack_));
-        if (depth < MaxDepth)
-        {
-            prealloc_guess_[depth] = len;
-        }
-    }
-
-    [[nodiscard]] tr_variant* get_leaf()
-    {
-        auto* const parent = stack_.top();
-        TR_ASSERT(parent != nullptr);
-
-        if (auto* const vec = parent->get_if<tr_variant::Vector>())
-        {
-            return &vec->emplace_back();
-        }
-        if (auto* const map = parent->get_if<tr_variant::Map>())
-        {
-            TR_ASSERT(!std::empty(cur_key_));
-            auto tmp = std::string_view{};
-            std::swap(cur_key_, tmp);
-            return &(*map)[tr_quark_new(tmp)];
-        }
-
-        return parent;
-    }
-
-    /* arbitrary value... this is much deeper than our code goes */
-    static auto constexpr MaxDepth = size_t{ 64 };
-
-    /* A very common pattern is for a container's children to be similar,
-     * e.g. they may all be objects with the same set of keys. So when
-     * a container is popped off the stack, remember its size to use as
-     * a preallocation heuristic for the next container at that depth. */
-    std::array<size_t, MaxDepth> prealloc_guess_{};
-
-    std::string key_buf_;
-    std::string_view cur_key_;
-    std::stack<tr_variant*> stack_;
-};
+    return false;
+}
 } // namespace parse_helpers
 } // namespace
 
@@ -222,48 +130,61 @@ std::optional<tr_variant> tr_variant_serde::parse_json(std::string_view input)
     auto* begin = std::data(input);
     if (begin == nullptr)
     {
-        // RapidJSON will dereference a nullptr otherwise
+        // Keep a non-null pointer for end_ arithmetic and error snippets.
         begin = "";
     }
 
     auto const size = std::size(input);
-    auto top = tr_variant{};
-    auto handler = parse_helpers::json_to_variant_handler{ &top };
-    auto ms = rapidjson::MemoryStream{ begin, size };
-    auto eis = rapidjson::AutoUTFInputStream<unsigned, rapidjson::MemoryStream>{ ms };
-    auto reader = rapidjson::GenericReader<rapidjson::AutoUTF<unsigned>, rapidjson::UTF8<char>>{};
-    reader.Parse<rapidjson::kParseStopWhenDoneFlag>(eis, handler);
+    if (size == 0U)
+    {
+        end_ = begin;
+        error_.set(EINVAL, "No content");
+        return {};
+    }
 
-    // Due to the nature of how AutoUTFInputStream works, when AutoUTFInputStream
-    // is used with MemoryStream, the read cursor position is always 1 ahead of
-    // the current character (unless the end of stream is reached).
-    auto const pos = eis.Peek() == '\0' ? eis.Tell() : eis.Tell() - 1U;
+    // Keep JSON parsing non-insitu for now. `tr_variant_serde::parse()` accepts
+    // `std::string_view`, so this backend cannot safely assume a mutable padded
+    // buffer, which yyjson requires for insitu parsing.
+    auto err = yyjson_read_err{};
+    auto* const doc = yyjson_read_opts(
+        const_cast<char*>(begin),
+        size,
+        YYJSON_READ_STOP_WHEN_DONE | YYJSON_READ_ALLOW_BOM,
+        nullptr,
+        &err);
+    auto const pos = doc != nullptr ? yyjson_doc_get_read_size(doc) : std::min(err.pos, size);
     end_ = begin + pos;
 
-    if (!reader.HasParseError())
+    if (doc != nullptr)
     {
-        return std::optional<tr_variant>{ std::move(top) };
-    }
-    if (auto err_code = reader.GetParseErrorCode(); err_code == rapidjson::kParseErrorDocumentEmpty)
-    {
-        error_.set(EINVAL, "No content");
-    }
-    else if (err_code == rapidjson::kParseErrorTermination)
-    {
+        auto top = tr_variant{};
+        auto const ok = parse_helpers::to_variant(yyjson_doc_get_root(doc), &top, 0U);
+        yyjson_doc_free(doc);
+
+        if (ok)
+        {
+            return std::optional<tr_variant>{ std::move(top) };
+        }
+
         error_.set(E2BIG, "Max stack depth reached; unable to continue parsing");
-    }
-    else
-    {
-        error_.set(
-            EILSEQ,
-            fmt::format(
-                fmt::runtime(_("Couldn't parse JSON at position {position} '{text}': {error} ({error_code})")),
-                fmt::arg("position", pos),
-                fmt::arg("text", std::string_view{ begin + pos, std::min(size_t{ 16U }, size - pos) }),
-                fmt::arg("error", rapidjson::GetParseError_En(err_code)),
-                fmt::arg("error_code", static_cast<std::underlying_type_t<decltype(err_code)>>(err_code))));
+        return {};
     }
 
+    if (err.code == YYJSON_READ_ERROR_EMPTY_CONTENT)
+    {
+        error_.set(EINVAL, "No content");
+        return {};
+    }
+
+    auto const text = pos < size ? std::string_view{ begin + pos, std::min(size_t{ 16U }, size - pos) } : std::string_view{};
+    error_.set(
+        EILSEQ,
+        fmt::format(
+            fmt::runtime(_("Couldn't parse JSON at position {position} '{text}': {error} ({error_code})")),
+            fmt::arg("position", pos),
+            fmt::arg("text", text),
+            fmt::arg("error", err.msg != nullptr ? err.msg : "Unknown error"),
+            fmt::arg("error_code", err.code)));
     return {};
 }
 
@@ -273,30 +194,6 @@ namespace
 {
 namespace to_string_helpers
 {
-// implements RapidJSON's write-only stream concept using fmt::memory_buffer.
-// See <rapidjson/stream.h> for details.
-struct FmtOutputStream
-{
-    using Ch = char;
-
-    void Put(Ch const ch)
-    {
-        buf_.push_back(ch);
-    }
-
-    void Flush()
-    {
-    }
-
-    [[nodiscard]] std::string to_string() const
-    {
-        return fmt::to_string(buf_);
-    }
-
-private:
-    fmt::memory_buffer buf_;
-};
-
 [[nodiscard]] auto sorted_entries(tr_variant::Map const& map)
 {
     static auto constexpr N = 32U;
@@ -310,68 +207,83 @@ private:
     return entries;
 }
 
-template<typename WriterT>
-struct JsonWriter
+[[nodiscard]] yyjson_mut_val* to_json_value(yyjson_mut_doc* const doc, tr_variant const& var)
 {
-    WriterT& writer;
-
-    void operator()(std::monostate /*unused*/) const
-    {
-    }
-
-    void operator()(std::nullptr_t) const
-    {
-        writer.Null();
-    }
-
-    void operator()(bool const val) const
-    {
-        writer.Bool(val);
-    }
-
-    void operator()(int64_t const val) const
-    {
-        writer.Int64(val);
-    }
-
-    void operator()(double const val) const
-    {
-        writer.Double(val);
-    }
-
-    void operator()(std::string_view const val) const
-    {
-        // workaround for this issue: in Writer::String() at
-        // rapidjson/writer.h:205: `RAPIDJSON_ASSERT(str != 0);`
-        // that fails when val.data() is nullptr when val.empty()
-        char const* data = std::data(val);
-        writer.String(data != nullptr ? data : "", std::size(val));
-    }
-
-    void operator()(tr_variant::Vector const& val) const
-    {
-        writer.StartArray();
-        for (auto const& child : val)
+    return var.visit(
+        [doc](auto const& value) -> yyjson_mut_val*
         {
-            child.visit(*this);
-        }
-        writer.EndArray();
-    }
+            using ValueType = std::remove_cvref_t<decltype(value)>;
 
-    void operator()(tr_variant::Map const& val) const
-    {
-        writer.StartObject();
-        for (auto const& [key, child] : sorted_entries(val))
-        {
-            writer.Key(std::data(key), std::size(key));
-            child->visit(*this);
-        }
-        writer.EndObject();
-    }
-};
+            if constexpr (std::is_same_v<ValueType, std::monostate>)
+            {
+                return nullptr;
+            }
+            else if constexpr (std::is_same_v<ValueType, std::nullptr_t>)
+            {
+                return yyjson_mut_null(doc);
+            }
+            else if constexpr (std::is_same_v<ValueType, bool>)
+            {
+                return yyjson_mut_bool(doc, value);
+            }
+            else if constexpr (std::is_same_v<ValueType, int64_t>)
+            {
+                return yyjson_mut_sint(doc, value);
+            }
+            else if constexpr (std::is_same_v<ValueType, double>)
+            {
+                return yyjson_mut_real(doc, value);
+            }
+            else if constexpr (std::is_same_v<ValueType, std::string> || std::is_same_v<ValueType, std::string_view>)
+            {
+                auto const sv = std::string_view{ value };
+                auto const* const data = std::data(sv);
+                return yyjson_mut_strncpy(doc, data != nullptr ? data : "", std::size(sv));
+            }
+            else if constexpr (std::is_same_v<ValueType, tr_variant::Vector>)
+            {
+                auto* const out = yyjson_mut_arr(doc);
+                if (out == nullptr)
+                {
+                    return nullptr;
+                }
 
-template<typename WriterT>
-JsonWriter(WriterT&) -> JsonWriter<WriterT>;
+                for (auto const& child : value)
+                {
+                    auto* const child_json = to_json_value(doc, child);
+                    if (child_json == nullptr || !yyjson_mut_arr_add_val(out, child_json))
+                    {
+                        return nullptr;
+                    }
+                }
+
+                return out;
+            }
+            else if constexpr (std::is_same_v<ValueType, tr_variant::Map>)
+            {
+                auto* const out = yyjson_mut_obj(doc);
+                if (out == nullptr)
+                {
+                    return nullptr;
+                }
+
+                for (auto const& [key, child] : sorted_entries(value))
+                {
+                    auto const* const key_data = std::data(key);
+                    auto* const json_key = yyjson_mut_strncpy(doc, key_data != nullptr ? key_data : "", std::size(key));
+                    auto* const json_val = to_json_value(doc, *child);
+                    if (json_key == nullptr || json_val == nullptr || !yyjson_mut_obj_add(out, json_key, json_val))
+                    {
+                        return nullptr;
+                    }
+                }
+
+                return out;
+            }
+
+            return nullptr;
+        });
+}
 
 } // namespace to_string_helpers
 } // namespace
@@ -380,18 +292,31 @@ std::string tr_variant_serde::to_json_string(tr_variant const& var) const
 {
     using namespace to_string_helpers;
 
-    auto buf = FmtOutputStream{};
-    if (compact_)
+    auto* const doc = yyjson_mut_doc_new(nullptr);
+    if (doc == nullptr)
     {
-        auto writer = rapidjson::Writer{ buf };
-        var.visit(JsonWriter{ writer });
+        return {};
     }
-    else
+
+    auto* const root = to_json_value(doc, var);
+    if (root == nullptr)
     {
-        // Explicitly specify template parameter to workaround
-        // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=85790
-        auto writer = rapidjson::PrettyWriter<FmtOutputStream>{ buf };
-        var.visit(JsonWriter{ writer });
+        yyjson_mut_doc_free(doc);
+        return {};
     }
-    return buf.to_string();
+
+    yyjson_mut_doc_set_root(doc, root);
+
+    auto len = size_t{};
+    auto const flags = compact_ ? YYJSON_WRITE_NOFLAG : YYJSON_WRITE_PRETTY;
+    auto* const json = yyjson_mut_write_opts(doc, flags, nullptr, &len, nullptr);
+    yyjson_mut_doc_free(doc);
+    if (json == nullptr)
+    {
+        return {};
+    }
+
+    auto out = std::string{ json, len };
+    std::free(json);
+    return out;
 }

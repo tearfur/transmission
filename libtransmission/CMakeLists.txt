@@ -284,7 +284,7 @@ target_link_libraries(${TR_NAME}
         ${LIBM_LIBRARY}
         ${LIBQUOTA_LIBRARY}
         ${TR_NETWORK_LIBRARIES}
-        RapidJSON
+        yyjson::yyjson
         utf8::cpp
         wildmat
         transmission::WideInteger

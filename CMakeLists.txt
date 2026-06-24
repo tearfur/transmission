@@ -61,6 +61,7 @@ set(PSL_MINIMUM 0.21.0)
 set(QT_MINIMUM 5.15)
 set(SIGSLOT_MINIMUM 1.2.3)
 set(SMALL_MINIMUM 0.2.2)
+set(YYJSON_MINIMUM 0.12.0)
 # utf8cpp v4's version file is configured with `COMPATIBILITY SameMajorVersion`
 # and does not support version range.
 # set(UTF8CPP_MINIMUM 3.1...4)
@@ -94,6 +95,7 @@ tr_auto_option(USE_SYSTEM_SMALL "Use system small library" ${USE_SYSTEM_DEFAULT}
 tr_auto_option(USE_SYSTEM_UTF8CPP "Use system uft8cpp library" ${USE_SYSTEM_DEFAULT})
 tr_auto_option(USE_SYSTEM_UTP "Use system utp library" ${USE_SYSTEM_DEFAULT})
 tr_auto_option(USE_SYSTEM_WIDE_INTEGER "Use system WideInteger library" ${USE_SYSTEM_DEFAULT})
+tr_auto_option(USE_SYSTEM_YYJSON "Use system yyjson library" ${USE_SYSTEM_DEFAULT})
 tr_auto_option(USE_SYSTEM_B64 "Use system b64 library" ${USE_SYSTEM_DEFAULT})
 tr_auto_option(USE_SYSTEM_PSL "Use system psl library" ${USE_SYSTEM_DEFAULT})
 tr_list_option(USE_GTK_VERSION "Use specific GTK version" AUTO 3 4)
@@ -281,8 +283,6 @@ endif()
 set(CMAKE_FOLDER "${TR_THIRD_PARTY_DIR_NAME}")
 
 set(SOURCE_ICONS_DIR "${PROJECT_SOURCE_DIR}/icons")
-
-find_package(RapidJSON)
 
 find_package(Threads)
 find_package(PkgConfig QUIET)
@@ -653,6 +653,19 @@ target_link_libraries(transmission::small
 target_compile_definitions(transmission::small
     INTERFACE
         SMALL_DISABLE_EXCEPTIONS=1)
+
+tr_add_external_auto_library(YYJSON yyjson
+    SUBPROJECT
+    CMAKE_ARGS
+        -DBUILD_SHARED_LIBS=OFF
+        -DYYJSON_BUILD_TESTS=OFF
+        -DYYJSON_BUILD_FUZZER=OFF
+        -DYYJSON_BUILD_MISC=OFF
+        -DYYJSON_BUILD_DOC=OFF
+        -DYYJSON_INSTALL=OFF)
+if(NOT TARGET yyjson::yyjson)
+    add_library(yyjson::yyjson ALIAS yyjson)
+endif()
 
 tr_add_external_auto_library(UTF8CPP utf8cpp
     SUBPROJECT

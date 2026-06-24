@@ -960,7 +960,7 @@ TEST_F(VariantTest, visitsNodesDepthFirst)
     // test that we visited the expected number of nodes.
     //
     // FIXME(ckerr): `serde.inplace()` doesn't work on JSON right now.
-    // RapidJSON always copies strings unless given mutable JSON input.
+    // The JSON backend still materializes owned strings instead of string_views.
     // That's why StringViewIndex is missing two counts here.
     auto const expected_visited_count = std::map<size_t, size_t>{
         { tr_variant::BoolIndex, 1U }, //
