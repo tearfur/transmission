@@ -6,7 +6,10 @@
 #include "Application.h"
 
 #include <algorithm>
+#include <chrono>
+#include <iterator>
 #include <utility>
+#include <vector>
 
 #include <QIcon>
 #include <QLibraryInfo>
@@ -335,9 +338,13 @@ void Application::onTorrentsCompleted(torrent_ids_t const& torrent_ids) const
 #if defined(Q_OS_WIN) || defined(Q_OS_MAC)
         beep();
 #else
-        auto args = prefs_.get<QStringList>(TR_KEY_torrent_complete_sound_command);
-        auto const command = args.takeFirst();
-        QProcess::execute(command, args);
+        auto const args = prefs_.get<std::vector<QString>>(TR_KEY_torrent_complete_sound_command);
+        if (!args.empty())
+        {
+            auto const& command = args.front();
+            auto const arguments = QStringList(std::next(std::begin(args)), std::end(args));
+            QProcess::execute(command, arguments);
+        }
 #endif
     }
 }
@@ -398,9 +405,9 @@ void Application::maybeUpdateBlocklist() const
         return;
     }
 
-    auto const last_updated_at = prefs_.get<QDateTime>(TR_KEY_blocklist_date);
-    auto const next_update_at = last_updated_at.addDays(7);
-    auto const now = QDateTime::currentDateTime();
+    auto const last_updated_at = prefs_.get<std::chrono::sys_seconds>(TR_KEY_blocklist_date);
+    auto const next_update_at = last_updated_at + std::chrono::days{ 7 };
+    auto const now = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now());
 
     if (now < next_update_at)
     {
